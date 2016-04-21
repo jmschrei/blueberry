@@ -129,7 +129,19 @@ def DNase( dnase ):
 	pool = Pooling( dnase, kernel=(9, 1), stride=(9, 1), pool_type='avg' )
 	return pool
 
-def Rambutan():
+def Rambutan(**kwargs):
+	"""Create the Rambutan model.
+
+	The current default values are the following:
+
+		ctx=[mx.gpu(2), mx.gpu(3)], 
+		symbol=Rambutan(),
+		epoch_size=5000,
+		num_epoch=50,
+		learning_rate=0.01,
+		wd=0.0,
+		optimizer='adam'
+	"""
 	x1seq = Variable( name="x1seq" )
 	x1dnase = Variable( name="x1dnase" )
 	#x1coord = Variable( name="x1coord" )
@@ -157,4 +169,5 @@ def Rambutan():
  
 	y_p = mx.symbol.FullyConnected( x_ip2, num_hidden=2 )
 	softmax = SoftmaxOutput( data=y_p, name='softmax' )
-	return softmax
+	model = mx.model.FeedForward( symbol=softmax, **kwargs )
+	return model

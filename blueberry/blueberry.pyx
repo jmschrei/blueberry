@@ -16,44 +16,8 @@ import random, time, os, gzip
 random.seed(0)
 numpy.random.seed(0)
 
-
-cpdef numpy.ndarray linear_prediction( float[:] probabilities ):
-	cdef int i, j, n = probabilities.shape[0]
-	cdef numpy.ndarray y_pred = numpy.zeros((n, n), dtype='float32')
-
-	for i in range(n):
-		if i % 1000 == 0:
-			print i
-
-		for j in range(n):
-			y_pred[i, j] = probabilities[i] * probabilities[j]
-
-	return y_pred
-
-cpdef numpy.ndarray linear_softmax_prediction( float [:,:] predictions ):
-	"""Do math to it."""
-
-	cdef int i, j, n = predictions.shape[0]
-	cdef numpy.ndarray y_pred = numpy.zeros((n, n), dtype='float32')
-	cdef numpy.ndarray a, b
-
-	cdef float x, y
-
-	for i in range(n):
-		if i % 1000 == 0:
-			print i
-
-		for j in range(n):
-			x = predictions[i, 0] + predictions[j, 0]
-			y = predictions[i, 1] + predictions[j, 1]
-
-			y_pred[i, j] = exp(y) / (exp(x) + exp(y))
-
-	return y_pred
-
-
 cpdef numpy.ndarray translate( numpy.ndarray sequence, dict mapping ):
-	"""
+	"""Translate the sequence from 
 	Translate the sequence. Since this involves a lot of lookups, it's faster
 	to do it in cython.
 	"""
@@ -392,103 +356,5 @@ cpdef extract_full_dataset( chrom, window=500 ):
 
 	y = numpy.concatenate(( numpy.ones(positive.shape[0], dtype='float32'), numpy.zeros(negative.shape[0], dtype='float32') ))
 	numpy.save( DATA_DIR + 'chr{}.full.y.npy'.format(chrom), y )
-
-	os.system( 'mv {}chr{}* /net/noble/vol1/home/jmschr/proj/contact/data/'.format(DATA_DIR, chrom) )
-
-cpdef extract_loops( chrom, window=2500 ):
-	DATA_DIR = '/data/scratch/ssd/jmschr/contact/'
-
-	chromosome = numpy.load( '../data/chr{}.ohe.npy'.format(chrom) ).astype( 'int32' )
-	dnase      = numpy.load( '../data/chr{}.dnase.npy'.format(chrom) ).astype( 'float32' )
-	contacts   = numpy.load( '../data/chr{}.loop.contacts.npy'.format(chrom) ).astype( 'int32' )
-
-	n, m = chromosome.shape[0], dnase.shape[0]
-
-	for i in xrange(len(contacts)):
-		contacts[i, 0] = edge_correct( contacts[i, 0], n, m, window )
-		contacts[i, 1] = edge_correct( contacts[i, 1], n, m, window )
-
-	x1seq = extract_sequences( chromosome, contacts[:, 0], window )
-	x2seq = extract_sequences( chromosome, contacts[:, 1], window )
-	
-	x1dnase = extract_dnases( dnase, contacts[:, 0], window )
-	x2dnase = extract_dnases( dnase, contacts[:, 1], window )
-
-	x1seq = x1seq.reshape( x1seq.shape[0], 1, x1seq.shape[1], x1seq.shape[2] )
-	x2seq = x2seq.reshape( x2seq.shape[0], 1, x2seq.shape[1], x2seq.shape[2] )
-
-	x1dnase = x1dnase.reshape( x1dnase.shape[0], 1, x1dnase.shape[1], x1dnase.shape[2] )
-	x2dnase = x2dnase.reshape( x2dnase.shape[0], 1, x2dnase.shape[1], x2dnase.shape[2] )
-
-	numpy.save( '../data/chr{}.loop.x1seq.npy'.format(chrom), x1seq )
-	numpy.save( '../data/chr{}.loop.x2seq.npy'.format(chrom), x2seq )
-	numpy.save( '../data/chr{}.loop.x1dnase.npy'.format(chrom), x1dnase )
-	numpy.save( '../data/chr{}.loop.x2dnase.npy'.format(chrom), x2dnase )
-
-cpdef extract_marginals( chrom, window=500 ):
-	chromosome = numpy.load( '../data/chr{}.ohe.npy'.format(chrom) ).astype( 'int32' )
-	dnase      = numpy.load( '../data/chr{}.dnase.npy'.format(chrom) ).astype( 'float32' )
-	regions    = numpy.load( '../data/chr{}.full.regions.npy'.format(chrom) ).astype( 'int32' )
-
-	n = chromosome.shape[0]
-	m = dnase.shape[0]
-
-	for i in xrange(len(regions)):
-		regions[i] = edge_correct( regions[i], n, m, window )
-
-	regions = numpy.unique(regions)
-	regions.sort()
-
-	seq = extract_sequences( chromosome, regions, window )
-	dnase = extract_dnases( dnase, regions, window )
-
-	seq = seq.reshape( seq.shape[0], 1, seq.shape[1], seq.shape[2] )
-	dnase = dnase.reshape( dnase.shape[0], 1, dnase.shape[1], dnase.shape[2] )
-
-	numpy.save( '../data/chr{}.marginal.seq.npy'.format(chrom), seq )
-	numpy.save( '../data/chr{}.marginal.dnase.npy'.format(chrom), dnase )
-
-	filename = "/net/noble/vol1/home/jmschr/proj/contact/HiC/GM12878_combined.chr{}.spline_pass1.res1000.significances.txt.gz".format( chrom )
-	infile = gzip.open( filename )
-
-	regions = { region: 0 for region in regions }
-
-	j = 0
-	for line in infile:
-		j += 1
-		if j % 100000 == 0:
-			print "chrom {}: read {} lines".format(chrom, j)
-
-		chr1, mid1, chr2, mid2, contactCount, p, q = line.split()
-
-		if chr1 != chr2:
-			continue
-
-		mid1 = edge_correct( int(mid1), n, m, window )
-		mid2 = edge_correct( int(mid2), n, m, window )
-
-		regions[mid1] += int(contactCount)
-		regions[mid2] += int(contactCount)
-
-	regions = numpy.array([ regions[region] for region in regions ])
-	numpy.save( '../data/chr{}.marginal.y.npy'.format(chrom), regions )
-
-cpdef extract_raw_dataset( chrom, window=500 ):
-	"""Extract the dataset given a chromosome."""
-
-	DATA_DIR = '/data/scratch/ssd/jmschr/contact/'
-
-	chromosome = numpy.load( '../data/chr{}.ohe.npy'.format(chrom) ).astype( 'float32' )
-	dnase      = numpy.load( '../data/chr{}.dnase.npy'.format(chrom) ).astype( 'float32' )
-	contacts   = numpy.load( '../data/chr{}.raw.contacts.npy'.format(chrom) )
-
-	numpy.save( DATA_DIR + 'chr{}.raw.x1coord.npy'.format(chrom), contacts[:,0] )
-	numpy.save( DATA_DIR + 'chr{}.raw.x2coord.npy'.format(chrom), contacts[:,1] )
-
-	memmap_extract_sequences( chromosome, contacts[:,0], window, DATA_DIR + 'chr{}.raw.x1seq.npy'.format(chrom) )
-	memmap_extract_sequences( chromosome, contacts[:,1], window, DATA_DIR + 'chr{}.raw.x2seq.npy'.format(chrom) )
-
-	memmap_extract_dnases( dnase, contacts[:,0], window, DATA_DIR + 'chr{}.raw.x1dnase.npy'.format(chrom) )
-	memmap_extract_dnases( dnase, contacts[:,1], window, DATA_DIR + 'chr{}.raw.x2dnase.npy'.format(chrom) )
 
 	os.system( 'mv {}chr{}* /net/noble/vol1/home/jmschr/proj/contact/data/'.format(DATA_DIR, chrom) )
