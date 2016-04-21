@@ -344,6 +344,11 @@ cpdef extract_full_dataset( chrom, window=500 ):
 	negative   = numpy.load( '../data/chr{}.full.negative_contacts.npy'.format(chrom), mmap_mode='r' )
 
 	contacts = numpy.concatenate((positive, negative))
+	n = contacts.shape[0]
+	indices = numpy.arange(n)
+	numpy.random.shuffle(indices)
+
+	contacts = contacts[indices]
 
 	numpy.save( DATA_DIR + 'chr{}.full.x1coord.npy'.format(chrom), contacts[:,0] )
 	numpy.save( DATA_DIR + 'chr{}.full.x2coord.npy'.format(chrom), contacts[:,1] )
@@ -355,6 +360,8 @@ cpdef extract_full_dataset( chrom, window=500 ):
 	memmap_extract_dnases( dnase, contacts[:,1], window, DATA_DIR + 'chr{}.full.x2dnase.npy'.format(chrom) )
 
 	y = numpy.concatenate(( numpy.ones(positive.shape[0], dtype='float32'), numpy.zeros(negative.shape[0], dtype='float32') ))
+	y = y[indices]
+
 	numpy.save( DATA_DIR + 'chr{}.full.y.npy'.format(chrom), y )
 
 	os.system( 'mv {}chr{}* /net/noble/vol1/home/jmschr/proj/contact/data/'.format(DATA_DIR, chrom) )
