@@ -7,14 +7,15 @@ This file defines a MxNet model, and all code related to training or predicting
 using a MxNet model.
 """
 
-from joblib import Parallel, delayed
 import mxnet as mx
+import logging
 import numpy, os, pyximport
 
 os.environ['CFLAGS'] = ' -I' + numpy.get_include()
 pyximport.install()
 
 from blueberry import *
+from joblib import Parallel, delayed
 from mxnet.symbol import Pooling, Variable, Flatten, Concat
 from mxnet.symbol import SoftmaxOutput, FullyConnected, Dropout
 from sklearn.metrics import roc_auc_score, average_precision_score
