@@ -15,6 +15,29 @@ Q_UPPER_BOUND = 0.50
 HIGH_FITHIC_CUTOFF = 10000000
 LOW_FITHIC_CUTOFF = 10000
 
+def shuffle_mmap( name, shape, dtype, indices ):
+	"""Shuffle a memory map.
+
+	Parameters
+	----------
+	name : str
+		The path to the memory map to open.
+
+	shape : tuple
+		The shape of each element in the memory map. For example, data which is
+		eventually (5, 1, 4, 1) would be have a shape of (1, 4, 1).
+
+	dtype : str, optional
+		The data type to read in. Must be a numpy dtype.
+
+	indices : array-like of ints
+		The new positions
+	"""
+
+	X = mmap(name, shape, dtype)
+	X = X[indices]
+	X.flush()
+
 def mmap( name, shape, dtype='int8' ):
 	"""Return a properly formatted memory map.
 
