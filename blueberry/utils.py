@@ -6,6 +6,7 @@
 These are utility functions which are re-used in many components.
 """
 
+import mxnet as mx
 from sklearn.metrics import *
 
 Q_LOWER_BOUND = 0.01
@@ -41,6 +42,46 @@ def mmap( name, shape, dtype='int8' ):
 	k = numpy.prod(shape)
 	n = int(data.shape[0] / k)
 	return data.reshape(n, *shape)
+
+def MxNetArray( path, inputs, shapes, dtypes, label=None, batch_size=1024 ):
+	"""Returns a properly formatted mxnet data iterator. 
+
+	Parameters
+	----------
+	path : str
+		Location of the data
+
+	inputs : array-like of strings 
+		The inputs to use. Typically 'x1seq' 'x1dnase' 'x2seq' 'x2dnase'
+
+	shapes : array-like of tuples
+		The shape of the underlying data points
+
+	dtypes : array-like of strings
+		The type of the underlying data
+
+	label : str, optional
+		The name of the label file. If none, does not add a label.
+
+	batch_size : int
+		The number of points per batch to use.
+
+	Returns
+	-------
+	data : mxnet.io.NDArrayIter
+		The data in a properly formatted way.
+	"""
+
+	X = { name : mmap( path + name + '.npy', shape=shape, dtype=dtype ) 
+			for name, shape, dtype in zip(inputs, shapes, dtypes) }
+
+	if label is not None:
+		y = mmap( path + label + '.npy', (), dtype='float32' )
+		data = mx.io.NDArrayIter( X, label={'softmax_label' : y}, batch_size=batch_size )
+	else:
+		data = mx.io.NDArrayIter( X, batch_size=batch_size )
+
+	return data
 
 def plot_pr_auc(y_true, y_pred, outfile="roc_pr.png"):
 	"""Plot a ROC and PR curve on the same plot.

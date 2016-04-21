@@ -275,7 +275,7 @@ def save_all_chrom_datasets( num_jobs=1, window=500 ):
 	with Parallel( n_jobs=n_jobs ) as p:
 		p( delayed( save_chrom_dataset )( chrom, window ) for chrom in ALL_CHROM )
 
-def build_dataset( chroms, name='data', verbose=True ):
+def build_dataset( chroms, name='data', verbose=True, downsample=1 ):
 	"""Build a dataset from a set of chromosomes.
 
 	This will read in the stored data for each chromosome and combine it into a
@@ -292,14 +292,21 @@ def build_dataset( chroms, name='data', verbose=True ):
 
 	name : str, optional
 		The name of the file to build. 
+
+	verbose : bool, optional
+		Whether to bring ocassional status reports and commands
+
+	downsample : int, optional
+		The amount of data to use. 1 means use all data, 2 means use half of
+		the data, etc...
 	"""
 
 	DATA_DIR = '/data/scratch/ssd/jmschr/contact/'
 
 	sizes = []
 	for i in chroms:
-		data = numpy.load( '../data/chr{}.full.y.npy'.format(i), mmap_mode='r' )
-		sizes.append( data.shape[0] )
+		data = numpy.load( '../data/chr{}.full.y.npy'.format(i), mmap_mode='r' )[::slice]
+		sizes.append( int(data.shape[0] / downsample) )
 
 	n = sum(sizes)
 	idxs = numpy.cumsum([0] + sizes)
