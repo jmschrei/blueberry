@@ -251,7 +251,7 @@ def save_chrom_dataset( chrom, window=500 ):
 	numpy.save( '../data/chr{}.y'.format( chrom ), y )
 	print "<- Finished chromosome {}".format( chrom )
 
-def save_all_chrom_datasets( num_jobs=1, window=500 ):
+def save_all_chrom_datasets( n_jobs=1, window=500 ):
 	"""Extract the raw data for all chromosomes and save them.
 
 	Extract the entire genome, one chromosome at a time. This can be done in
