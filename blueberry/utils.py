@@ -6,6 +6,7 @@
 These are utility functions which are re-used in many components.
 """
 
+import numpy
 import mxnet as mx
 from sklearn.metrics import *
 
