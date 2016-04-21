@@ -11,7 +11,7 @@ import time
 os.environ['CFLAGS'] = ' -I' + numpy.get_include()
 pyximport.install()
 
-from blueberry import *
+from .blueberry import *
 from joblib import Parallel, delayed
 
 random.seed(0)
@@ -273,7 +273,7 @@ def save_all_chrom_datasets( n_jobs=1, window=500 ):
 	"""
 
 	with Parallel( n_jobs=n_jobs ) as p:
-		p( delayed( save_chrom_dataset )( chrom, window ) for chrom in ALL_CHROM )
+		p( delayed( extract_full_dataset )( chrom, window ) for chrom in ALL_CHROM )
 
 def build_dataset( chroms, name='data', verbose=True, downsample=1 ):
 	"""Build a dataset from a set of chromosomes.
