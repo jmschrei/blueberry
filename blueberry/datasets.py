@@ -305,7 +305,7 @@ def build_dataset( chroms, name='data', verbose=True, downsample=1 ):
 
 	sizes = []
 	for i in chroms:
-		data = numpy.load( '../data/chr{}.full.y.npy'.format(i), mmap_mode='r' )[::downsample]
+		data = numpy.load( '../data/chr{}.full.y.npy'.format(i), mmap_mode='r' )
 		sizes.append( int(data.shape[0] / downsample) )
 
 	n = sum(sizes)
