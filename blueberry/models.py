@@ -46,12 +46,11 @@ class GeneratorIter(DataIter):
 	the size of data does not match batch_size. Roll over is intended
 	for training and can cause problems if used for prediction.
 	"""
-	def __init__(self, data, data_shapes={}, label_shapes={}, batch_size=1, max_iterations=100):
+	def __init__(self, generator, data_shapes={}, label_shapes={}, batch_size=1, max_iterations=100):
 		# pylint: disable=W0201
 
 		super(NDArrayIter, self).__init__()
-		self.generator_func = data
-		self.generator = generator(batch_size)
+		self.generator = data
 		self.data_shapes = data_shapes
 		self.label_shapes = label_shapes
 		self.batch_size = batch_size
@@ -75,6 +74,52 @@ class GeneratorIter(DataIter):
 					pad=self.getpad(), index=None)
 		else:
 			raise StopIteration
+
+def generate_pairs( chromosomes, batch_size=1024, n_iter=1000, window=500 ):
+	"""Generate a series of data pairs and return them."""
+
+	sequence    = [ numpy.load('../data/chr{}.ohe.npy'.format(i)) for i in chromosomes ]
+	dnases      = [ numpy.load('../data/chr{}.dnase.npy'.format(i)) for i in chromosomes ]
+	contacts    = [ numpy.load('../data/chr{}.full.positive_contacts.npy'.format(i)) for i in chromosomes ]
+	midcontacts = [ numpy.load('../data/chr{}.full.middle_contacts.npy'.format(i)) for i in chromosomes ]
+	regions     = [ numpy.load('../data/chr{}.full.regions.npy'.format(i)) for i in chromosomes ]
+
+	for _iter in range(n_iter):
+		data = { 'x1seq' : numpy.zeros(batch_size, 1001, 4),
+		         'x2seq' : numpy.zeros(batch_size, 1001, 4),
+		         'x1dnase' : numpy.zeros(batch_size, 1001, 1),
+		         'x2dnase' : numpy.zeros(batch_size, 1001, 1) }
+
+		labels = { 'y' : numpy.zeros(batch_size,) }
+
+		i = 0
+		while i < batch_size:
+			c = numpy.random.choice(chromosomes)
+
+			if i % 2 == 0:
+				k = numpy.random.randint(len(contacts[ch]))
+				mid1, mid2 = contacts[ch][k]
+
+				if LOW_FITHIC_CUTOFF <= numpy.abs(mid2 - mid1) <= HIGH_FITHIC_CUTOFF:
+					continue 
+
+				labels['y'][i] = 1
+
+			else:
+				mid1, mid2 = numpy.random.choice( regions[ch], 2 )
+
+				if LOW_FITHIC_CUTOFF <= numpy.abs(mid2 - mid1) <= HIGH_FITHIC_CUTOFF:
+					continue
+
+				labels['y'][i] = 0
+
+			data['x1seq'][i] = chromosomes[ch][mid1-window:mid1+window+1]
+			data['x2seq'][i] = chromosomes[ch][mid2-window:mid2+window+1]
+
+			data['x1dnase'][i, :, 0] = dnases[ch][mid1-window:mid1+window+1]
+			data['x2dnase'][i, :, 0] = dnases[ch][mid1-window:mid1+window+1]
+
+		yield data, labels
 
 class MxNetModel(object):
 	"""A trained mxnet model.
