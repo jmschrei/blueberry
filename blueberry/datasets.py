@@ -221,36 +221,6 @@ def unpack_contacts(chrom, verbose=True):
 	if verbose:
 		print "Finished | unpack_contacts | chr{}".format(chrom)
 
-def save_chrom_dataset( chrom, window=500 ):
-	"""Extract the raw data for a chromosome and save it.
-
-	Extract the one-hot encoded DNA data and the DNase sensitivity from a set
-	of contacts and save it to a numpy file.
-
-	Parameters
-	----------
-	chrom : int
-		The chromosome to extract.
-
-	window : int, optional
-		The window around each contact to extract, should be resolution/2.
-		Defaults to 500 for 1kb resolution.
-
-	Returns
-	-------
-	None
-	"""
-
-	print "-> Starting chromosome {}".format( chrom )
-	x1seq, x1dnase, x2seq, x2dnase, y = extract_dataset( chrom, window=window )
-
-	numpy.save( '../data/chr{}.x1seq'.format( chrom ), x1seq )
-	numpy.save( '../data/chr{}.x2seq'.format( chrom ), x2seq )
-	numpy.save( '../data/chr{}.x1dnase'.format( chrom ), x1dnase )
-	numpy.save( '../data/chr{}.x2dnase'.format( chrom ), x2dnase )
-	numpy.save( '../data/chr{}.y'.format( chrom ), y )
-	print "<- Finished chromosome {}".format( chrom )
-
 def save_all_chrom_datasets( n_jobs=1, window=500 ):
 	"""Extract the raw data for all chromosomes and save them.
 

@@ -12,6 +12,7 @@ cimport numpy
 import numpy
 
 import random, time, os, gzip
+from .utils import *
 
 random.seed(0)
 numpy.random.seed(0)
@@ -36,21 +37,60 @@ cpdef numpy.ndarray translate( numpy.ndarray sequence, dict mapping ):
 
 	return ohe_sequence
 
+cpdef evaluate( map1, map2 ):
+	"""Calculate the accuracy using map1 to predict map2."""
+
+	regions = numpy.array(list(set(map1.regions).intersection(set(map2.regions))))
+	regions.sort()
+	
+	cdef int n = regions.shape[0]**2/2, m = regions.shape[0]
+	cdef numpy.ndarray y_true = numpy.zeros(n)
+	cdef numpy.ndarray y_pred = numpy.zeros(n)
+
+	cdef int i=0, j=0, k, l
+
+	for k in range(m):
+		mid1 = regions[k]
+
+		for l in range(m):
+			if l <= k:
+				continue
+
+			mid2 = regions[l]
+
+			j += 1
+			if j % 1000000 == 0:
+				print i, j, n
+
+			if mid2 > mid1 + HIGH_FITHIC_CUTOFF:
+				break
+			elif mid2 < mid1 + LOW_FITHIC_CUTOFF:
+				continue
+			
+			y_pred[i] = map1.get((mid1, mid2), (1, 1))[0]
+			y_true[i] = 0 if map2.get((mid1, mid2), (1, 1))[1] > 0.01 else 1
+			i += 1
+
+	print i, j, n
+	y_true = y_true[:i]
+	y_pred = -numpy.log(y_pred[:i])
+	return y_true, y_pred
+
 cpdef dict contacts_to_hashmap( numpy.ndarray contacts ):
 	"""Take in pairs of contacts and build a hashmap of tuples for fast lookup."""
 
 	cdef int i
 	cdef int n = contacts.shape[0]
 	cdef int mid1, mid2
-
 	cdef dict contact_map = {}
 
 	for i in range(n):
-		mid1 = contacts[i, 0]
-		mid2 = contacts[i, 1]
+		mid1, mid2 = contacts[i]
+		mid1 = int(mid1)
+		mid2 = int(mid2)
 
-		contact_map[ (mid1, mid2) ] = 1
-		contact_map[ (mid2, mid1) ] = 1
+		contact_map[(mid1, mid2)] = 1
+		contact_map[(mid2, mid1)] = 1
 
 	return contact_map
 
@@ -60,100 +100,17 @@ cpdef dict contacts_to_qhashmap( numpy.ndarray contacts ):
 	cdef int i
 	cdef int n = contacts.shape[0]
 	cdef int mid1, mid2
-	cdef double q
+	cdef double p, q
 
 	cdef dict contact_map = {}
 
 	for i in range(n):
-		mid1 = int(contacts[i, 0])
-		mid2 = int(contacts[i, 1])
-		q = contacts[i, 2]
+		mid1, mid2, p, q = contacts[i]
+		mid1 = int(mid1)
+		mid2 = int(mid2)
 
-		contact_map[ (mid1, mid2) ] = q
-		contact_map[ (mid2, mid1) ] = q
-
-	return contact_map
-
-cpdef numpy.ndarray contact_map( numpy.ndarray contacts, dict positive_contacts, dict negative_contacts ):
-	"""
-	Build an example matrix of intrachromosomal contacts for the entire genome
-	and return examples one at a time as a generator.
-	"""
-
-	cdef int i, j = 0
-	cdef int n = contacts.shape[0]
-	cdef numpy.ndarray contact_map = numpy.zeros((n, 3), dtype=numpy.int32)
-
-	cdef int mid1, mid2, mid1_round, mid2_round
-	cdef int contact_count = 0, noncontact_count = 0, filtered_count = 0
-	cdef int contact
-	cdef tuple key
-
-	for i in range(n):
-		if i % 25000 == 0:
-			print "\t\t{} contacts, {} non-contacts, {} filtered".format( contact_count, noncontact_count, filtered_count )
-
-		mid1 = contacts[i, 0]
-		mid2 = contacts[i, 1]
-
-		mid1_round = numpy.around( mid1+500, -3 ) - 500
-		mid2_round = numpy.around( mid2+500, -3 ) - 500
-
-		key = (mid1_round, mid2_round)
-
-		if positive_contacts.has_key( key ):
-			contact = 1
-			contact_count += 1
-		elif negative_contacts.has_key( key ):
-			contact = 0
-			noncontact_count += 1
-		else:
-			filtered_count += 1
-			continue
-
-		contact_map[j, 0] = mid1
-		contact_map[j, 1] = mid2
-		contact_map[j, 2] = contact
-		j += 1
-
-	return contact_map[:j]
-
-
-cpdef numpy.ndarray build_all_contact_map( numpy.ndarray contacts, dict positive_contacts ):
-	"""
-	Build an example matrix of intrachromosomal contacts for the entire genome
-	and return examples one at a time as a generator.
-	"""
-
-	cdef int i, j, k
-	cdef int n = contacts.shape[0]
-	cdef numpy.ndarray contact_map = numpy.zeros( (n, 3), dtype=numpy.int32 )
-
-	cdef int mid1, mid2, mid1_round, mid2_round
-	cdef int contact_count = 0
-	cdef int noncontact_count = 0
-	cdef int contact
-
-	for i in range(n):
-		if i % 25000 == 0:
-			print "\t\t{} contacts, {} non-contacts".format( contact_count, noncontact_count )
-
-		mid1 = contacts[i, 0]
-		mid2 = contacts[i, 1]
-
-		mid1_round = numpy.around( mid1+500, -3 ) - 500
-		mid2_round = numpy.around( mid2+500, -3 ) - 500
-
-		contact = positive_contacts.has_key( (mid1_round, mid2_round) )
-
-		if contact == 1:
-			contact_count += 1
-		else:
-			noncontact_count += 1
-
-		contact_map[i, 0] = mid1
-		contact_map[i, 1] = mid2
-		contact_map[i, 2] = contact
+		contact_map[(mid1, mid2)] = (p, q)
+		contact_map[(mid2, mid1)] = (p, q)
 
 	return contact_map
 
@@ -187,108 +144,12 @@ cdef numpy.ndarray extract_dnases( float [:] dnase, int [:] centers, int window 
 
 	return dnases
 
-cpdef numpy.ndarray extract_pair_subset( numpy.ndarray contacts, numpy.ndarray peaks ):
-	"""
-	Given a numpy array of all contacts, and a numpy array of relevant peaks
-	which we want the contacts between, extract all contacts with those peaks.
-	"""
-
-	cdef int i, n = peaks.shape[0], j = 0
-	cdef dict peak_indices = {}
-	cdef numpy.ndarray contact_subset = numpy.zeros((n*n, 3))
-
-	for i in range(n):
-		peak_indices[ peaks[i] ] = i
-
-	for i in range( contacts.shape[0] ):
-		peak1 = contacts[i, 0]
-		peak2 = contacts[i, 1]
-		contact = contacts[i, 2]
-
-		if peak_indices.has_key( peak1 ) and peak_indices.has_key( peak2 ):
-			contact_subset[j, 0] = peak1
-			contact_subset[j, 1] = peak2
-			contact_subset[j, 2] = contact
-			j += 1
-
-	return contact_subset[:j]
-
 cpdef tuple extract_regions( int [:] x, numpy.ndarray chromosome, numpy.ndarray dnase, int window ):
 	"""Extract regions."""
 
 	cdef numpy.ndarray seq   = numpy.array(extract_sequences( chromosome, x, window ))
 	cdef numpy.ndarray dnases = numpy.array(extract_dnases( dnase, x, window ))	
 	return seq, dnases
-
-cpdef tuple extract_pairs( numpy.ndarray regions, numpy.ndarray contacts, numpy.ndarray chromosome, numpy.ndarray dnase, int window ):
-	"""Encode pairwise contacts using pre-extracted sites."""
-
-	cdef int i, j, k=0, n=regions.shape[0]
-	cdef int m = n*n
-	cdef int label
-
-	cdef numpy.ndarray x1seq   = numpy.zeros((m, 1, 2*window+1, 4))
-	cdef numpy.ndarray x1dnase = numpy.zeros((m, 1, 2*window+1, 1))
-	cdef numpy.ndarray x2seq   = numpy.zeros((m, 1, 2*window+1, 4))
-	cdef numpy.ndarray x2dnase = numpy.zeros((m, 1, 2*window+1, 1))
-	cdef numpy.ndarray y       = numpy.zeros((m,))
-
-	for i in range(n):
-		regions[i] = edge_correct(regions[i], chromosome.shape[0], dnase.shape[0], window)
-
-	regions = regions.astype(numpy.int32)
-	chromosome = chromosome.astype(numpy.int32)
-	dnase = dnase.astype(numpy.float32)
-
-	cdef numpy.ndarray seqs   = extract_sequences( chromosome, regions, window )
-	cdef numpy.ndarray dnases = extract_dnases( dnase, regions, window )
-
-	cdef dict positive = contacts_to_hashmap(contacts)
-	cdef tuple contact
-
-	k = 0
-	for i in range(n):
-		for j in range(i):
-			contact = (regions[i], regions[j])
-			label = positive.get( contact, 0 )
-			k += label
-			print regions[i], regions[j], label, k
-
-			continue
-
-			x1seq[k]   = seqs[j]
-			x2seq[k]   = seqs[i]
-			x1dnase[k] = dnases[j]
-			x2dnase[k] = dnases[i]
-			y[k]       = label
-
-	return x1seq, x1dnase, x2seq, x2dnase, y
-
-def extract_dataset( chrom_id, window=500 ):
-	"""Extract the dataset from a given chromosome."""
-
-	chromosome = numpy.load( '../data/chr{}.ohe.npy'.format( chrom_id ) )
-	contacts = numpy.load( '../data/chr{}.peak_contacts.npy'.format( chrom_id ) )
-	peaks = numpy.load( '../data/chr{}.peaks.npy'.format( chrom_id ) )
-	dnase = numpy.load( '../data/chr{}.dnase.npy'.format( chrom_id ) )
-
-	positive_contacts = contacts[ contacts[:,2] == 1 ]
-	negative_contacts = contacts[ contacts[:,2] == 0 ]
-	numpy.random.shuffle( negative_contacts )
-
-	n = positive_contacts.shape[0]
-
-	contacts = numpy.concatenate( (positive_contacts, negative_contacts[:n]) )
-	numpy.random.shuffle( contacts )
-	
-	x1seq, x1dnase, x2seq, x2dnase, y = extract_pairs( contacts, peaks, chromosome, dnase, window )
-
-	x1seq = x1seq.astype('float32')
-	x2seq = x2seq.astype('float32')
-	x1dnase = x1dnase.astype('float32')
-	x2dnase = x2dnase.astype('float32')
-	y = y.astype('float32')
-	return x1seq, x2seq, x1dnase, x2dnase, y
 
 cdef void memmap_extract_sequences( float [:,:] chromosome, int [:] centers, int window, str name ):
 	"""Extract the sequences and save them to a memory map."""

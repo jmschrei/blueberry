@@ -7,7 +7,6 @@ This file defines a MxNet model, and all code related to training or predicting
 using a MxNet model.
 """
 
-import mxnet as mx
 import logging
 import numpy, os, pyximport
 
@@ -16,14 +15,21 @@ pyximport.install()
 
 from blueberry import *
 from joblib import Parallel, delayed
-from mxnet.symbol import Pooling, Variable, Flatten, Concat
-from mxnet.symbol import SoftmaxOutput, FullyConnected, Dropout
-from mxnet.io import *
 from sklearn.metrics import roc_auc_score, average_precision_score
+
+try:
+	import mxnet as mx
+	from mxnet.symbol import Pooling, Variable, Flatten, Concat
+	from mxnet.symbol import SoftmaxOutput, FullyConnected, Dropout
+	from mxnet.io import *
+	from mxnet.ndarray import array
+	mx.random.seed(0)
+except:
+	print "ImportWarning: mxnet not imported"
+	DataIter = object
 
 from .utils import *
 
-mx.random.seed(0)
 numpy.random.seed(0)
 random.seed(0)
 
@@ -49,80 +55,95 @@ class GeneratorIter(DataIter):
 	the size of data does not match batch_size. Roll over is intended
 	for training and can cause problems if used for prediction.
 	"""
-	def __init__(self, generator, data_shapes={}, label_shapes={}, batch_size=1, max_iterations=100):
-		# pylint: disable=W0201
+	def __init__(self, sequences, dnases, contacts, poscontacts, midcontacts, regions, window, data_shapes={}, label_shapes={}, batch_size=1, max_iterations=100):
+		super(GeneratorIter, self).__init__()
 
-		super(NDArrayIter, self).__init__()
-		self.generator = data
+		self.sequence    = sequences
+		self.dnases      = dnases
+		self.contacts    = contacts
+		self.poscontacts = poscontacts
+		self.midcontacts = midcontacts
+		self.regions     = regions
+		self.n = len(sequences)
+
+		self.window = window
 		self.data_shapes = data_shapes
 		self.label_shapes = label_shapes
 		self.batch_size = batch_size
 		self.max_iterations = max_iterations
-		self.iterations = 0
 
 	@property
 	def provide_data(self):
 		"""The name and shape of data provided by this iterator"""
-		return [(k, tuple([self.batch_size] + list(v.shape[1:]))) for k, v in self.data_shapes.items()]
+		return [(k, tuple([self.batch_size] + list(v))) for k, v in self.data_shapes.items()]
 
 	@property
 	def provide_label(self):
 		"""The name and shape of label provided by this iterator"""
-		return [(k, tuple([self.batch_size] + list(v.shape[1:]))) for k, v in self.label_shapes.items()]
+		return [(k, tuple([self.batch_size] + list(v))) for k, v in self.label_shapes.items()]
 
-	def next(self):
-		if self.iterations < self.max_iterations:
-			return DataBatch(data=self.getdata(), label=self.getlabel(), \
-					pad=self.getpad(), index=None)
-		else:
-			raise StopIteration
+	def __iter__(self):
+		sequence = self.sequence
+		dnases = self.dnases
+		contacts = self.contacts
+		regions = self.regions
+		window = self.window
+		batch_size = self.batch_size
 
-def generate_pairs( chromosomes, batch_size=1024, n_iter=1000, window=500 ):
-	"""Generate a series of data pairs and return them."""
+		for _iter in range(self.max_iterations):
+			data = { 'x1seq' : numpy.zeros((batch_size, 1001, 4)),
+			         'x2seq' : numpy.zeros((batch_size, 1001, 4)),
+			         'x1dnase' : numpy.zeros((batch_size, 1001, 1)),
+			         'x2dnase' : numpy.zeros((batch_size, 1001, 1)) }
 
-	sequence    = [ numpy.load(DATA('chr{}.ohe.npy'.format(i))) for i in chromosomes ]
-	dnases      = [ numpy.load(DATA('chr{}.dnase.npy'.format(i))) for i in chromosomes ]
-	contacts    = [ numpy.load(DATA('chr{}.full.positive_contacts.npy'.format(i))) for i in chromosomes ]
-	midcontacts = [ numpy.load(DATA('chr{}.full.middle_contacts.npy'.format(i))) for i in chromosomes ]
-	regions     = [ numpy.load(DATA('chr{}.full.regions.npy'.format(i))) for i in chromosomes ]
+			labels = { 'softmax_label' : numpy.zeros(batch_size) }
 
-	for _iter in range(n_iter):
-		data = { 'x1seq' : numpy.zeros((batch_size, 1001, 4)),
-		         'x2seq' : numpy.zeros((batch_size, 1001, 4)),
-		         'x1dnase' : numpy.zeros((batch_size, 1001, 1)),
-		         'x2dnase' : numpy.zeros((batch_size, 1001, 1)) }
+			i = 0
+			while i < batch_size:
+				c = numpy.random.randint(self.n)
 
-		labels = { 'y' : numpy.zeros(batch_size) }
+				if i % 2 == 0:
+					k = numpy.random.randint(len(contacts[c]))
+					mid1, mid2 = contacts[c][k]
+					mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
 
-		i = -1
-		while i < batch_size:
-			i += 1
-			c = numpy.random.choice(chromosomes)
+					if not (LOW_FITHIC_CUTOFF <= mid2 - mid1 <= HIGH_FITHIC_CUTOFF):
+						continue 
 
-			if i % 2 == 0:
-				k = numpy.random.randint(len(contacts[ch]))
-				mid1, mid2 = contacts[ch][k]
+				else:
+					mid1, mid2 = numpy.random.choice(regions[c], 2)
+					mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
 
-				if LOW_FITHIC_CUTOFF <= numpy.abs(mid2 - mid1) <= HIGH_FITHIC_CUTOFF:
-					continue 
+					if not (LOW_FITHIC_CUTOFF <= mid2 - mid1 <= HIGH_FITHIC_CUTOFF):
+						continue
 
-				labels['y'][i] = 1
+					if self.midcontacts[c].has_key( (mid1, mid2) ):
+						continue
 
-			else:
-				mid1, mid2 = numpy.random.choice( regions[ch], 2 )
+					if self.poscontacts[c].has_key( (mid1, mid2) ):
+						continue
 
-				if LOW_FITHIC_CUTOFF <= numpy.abs(mid2 - mid1) <= HIGH_FITHIC_CUTOFF:
-					continue
+				labels['softmax_label'][i] = (i+1)%2
 
-				labels['y'][i] = 0
+				data['x1seq'][i] = sequence[c][mid1-window:mid1+window+1]
+				data['x2seq'][i] = sequence[c][mid2-window:mid2+window+1]
 
-			data['x1seq'][i] = chromosomes[ch][mid1-window:mid1+window+1]
-			data['x2seq'][i] = chromosomes[ch][mid2-window:mid2+window+1]
+				data['x1dnase'][i, :, 0] = dnases[c][mid1-window:mid1+window+1]
+				data['x2dnase'][i, :, 0] = dnases[c][mid2-window:mid2+window+1]
+				i += 1
 
-			data['x1dnase'][i, :, 0] = dnases[ch][mid1-window:mid1+window+1]
-			data['x2dnase'][i, :, 0] = dnases[ch][mid1-window:mid1+window+1]
+			data['x1seq'] = data['x1seq'].reshape(batch_size, 1, 1001, 4)
+			data['x2seq'] = data['x2seq'].reshape(batch_size, 1, 1001, 4)
+			data['x1dnase'] = data['x1dnase'].reshape(batch_size, 1, 1001, 1)
+			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, 1001, 1)
 
-		yield data, labels
+			data = [ array(data[l]) for l in self.data_shapes.keys() ]
+			labels = [ array(labels[l]) for l in self.label_shapes.keys() ]
+
+			yield DataBatch(data=data, label=labels, pad=0, index=None)
+
+	def reset(self):
+		pass
 
 class MxNetModel(object):
 	"""A trained mxnet model.
