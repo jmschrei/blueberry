@@ -69,7 +69,6 @@ class GeneratorIter(DataIter):
 
 	def next(self):
 		if self.iterations < self.max_iterations:
-			data, labels = 
 			return DataBatch(data=self.getdata(), label=self.getlabel(), \
 					pad=self.getpad(), index=None)
 		else:
