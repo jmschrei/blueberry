@@ -94,8 +94,9 @@ def generate_pairs( chromosomes, batch_size=1024, n_iter=1000, window=500 ):
 
 		labels = { 'y' : numpy.zeros(batch_size,) }
 
-		i = 0
+		i = -1
 		while i < batch_size:
+			i += 1
 			c = numpy.random.choice(chromosomes)
 
 			if i % 2 == 0:
