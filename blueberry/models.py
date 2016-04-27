@@ -18,6 +18,7 @@ from blueberry import *
 from joblib import Parallel, delayed
 from mxnet.symbol import Pooling, Variable, Flatten, Concat
 from mxnet.symbol import SoftmaxOutput, FullyConnected, Dropout
+from mxnet.io import *
 from sklearn.metrics import roc_auc_score, average_precision_score
 
 mx.random.seed(0)
