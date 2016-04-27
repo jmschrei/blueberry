@@ -27,6 +27,55 @@ random.seed(0)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
+class GeneratorIter(DataIter):
+	"""Generator iterator, collects batches from a generator.
+
+	Parameters
+	----------
+	data : generator
+
+	batch_size : int
+		Batch Size
+
+	last_batch_handle : 'pad', 'discard' or 'roll_over'
+		How to handle the last batch
+
+	Note
+	----
+	This iterator will pad, discard or roll over the last batch if
+	the size of data does not match batch_size. Roll over is intended
+	for training and can cause problems if used for prediction.
+	"""
+	def __init__(self, data, data_shapes={}, label_shapes={}, batch_size=1, max_iterations=100):
+		# pylint: disable=W0201
+
+		super(NDArrayIter, self).__init__()
+		self.generator_func = data
+		self.generator = generator(batch_size)
+		self.data_shapes = data_shapes
+		self.label_shapes = label_shapes
+		self.batch_size = batch_size
+		self.max_iterations = max_iterations
+		self.iterations = 0
+
+	@property
+	def provide_data(self):
+		"""The name and shape of data provided by this iterator"""
+		return [(k, tuple([self.batch_size] + list(v.shape[1:]))) for k, v in self.data_shapes.items()]
+
+	@property
+	def provide_label(self):
+		"""The name and shape of label provided by this iterator"""
+		return [(k, tuple([self.batch_size] + list(v.shape[1:]))) for k, v in self.label_shapes.items()]
+
+	def next(self):
+		if self.iterations < self.max_iterations:
+			data, labels = 
+			return DataBatch(data=self.getdata(), label=self.getlabel(), \
+					pad=self.getpad(), index=None)
+		else:
+			raise StopIteration
+
 class MxNetModel(object):
 	"""A trained mxnet model.
 
@@ -95,7 +144,7 @@ class MxNetModel(object):
 			x2dnase[i] = region_dnase[mid2]
 
 		X = mx.io.NDArrayIter({  
-					    	  'x1seq'   : x1seq.reshape(n, 1, 1001, 4),
+							  'x1seq'   : x1seq.reshape(n, 1, 1001, 4),
 							  'x2seq'   : x2seq.reshape(n, 1, 1001, 4),
 							  'x1dnase' : x1dnase.reshape(n, 1, 1001, 1),
 							  'x2dnase' : x2dnase.reshape(n, 1, 1001, 1)
