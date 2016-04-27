@@ -87,12 +87,12 @@ def generate_pairs( chromosomes, batch_size=1024, n_iter=1000, window=500 ):
 	regions     = [ numpy.load(DATA('chr{}.full.regions.npy'.format(i))) for i in chromosomes ]
 
 	for _iter in range(n_iter):
-		data = { 'x1seq' : numpy.zeros(batch_size, 1001, 4),
-		         'x2seq' : numpy.zeros(batch_size, 1001, 4),
-		         'x1dnase' : numpy.zeros(batch_size, 1001, 1),
-		         'x2dnase' : numpy.zeros(batch_size, 1001, 1) }
+		data = { 'x1seq' : numpy.zeros((batch_size, 1001, 4)),
+		         'x2seq' : numpy.zeros((batch_size, 1001, 4)),
+		         'x1dnase' : numpy.zeros((batch_size, 1001, 1)),
+		         'x2dnase' : numpy.zeros((batch_size, 1001, 1)) }
 
-		labels = { 'y' : numpy.zeros(batch_size,) }
+		labels = { 'y' : numpy.zeros(batch_size) }
 
 		i = -1
 		while i < batch_size:
