@@ -21,6 +21,8 @@ from mxnet.symbol import SoftmaxOutput, FullyConnected, Dropout
 from mxnet.io import *
 from sklearn.metrics import roc_auc_score, average_precision_score
 
+from .utils import *
+
 mx.random.seed(0)
 numpy.random.seed(0)
 random.seed(0)
