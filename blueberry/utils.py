@@ -14,6 +14,8 @@ Q_LOWER_BOUND = 0.01
 Q_UPPER_BOUND = 0.50
 HIGH_FITHIC_CUTOFF = 10000000
 LOW_FITHIC_CUTOFF = 10000
+DATA_DIR = "/net/noble/vol1/home/jmschr/proj/contact/data"
+DATA = lambda name: DATA_DIR + "/{}".format(name)
 
 def shuffle_mmap( name, shape, dtype, indices ):
 	"""Shuffle a memory map.

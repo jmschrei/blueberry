@@ -78,11 +78,11 @@ class GeneratorIter(DataIter):
 def generate_pairs( chromosomes, batch_size=1024, n_iter=1000, window=500 ):
 	"""Generate a series of data pairs and return them."""
 
-	sequence    = [ numpy.load('../data/chr{}.ohe.npy'.format(i)) for i in chromosomes ]
-	dnases      = [ numpy.load('../data/chr{}.dnase.npy'.format(i)) for i in chromosomes ]
-	contacts    = [ numpy.load('../data/chr{}.full.positive_contacts.npy'.format(i)) for i in chromosomes ]
-	midcontacts = [ numpy.load('../data/chr{}.full.middle_contacts.npy'.format(i)) for i in chromosomes ]
-	regions     = [ numpy.load('../data/chr{}.full.regions.npy'.format(i)) for i in chromosomes ]
+	sequence    = [ numpy.load(DATA('chr{}.ohe.npy'.format(i))) for i in chromosomes ]
+	dnases      = [ numpy.load(DATA('chr{}.dnase.npy'.format(i))) for i in chromosomes ]
+	contacts    = [ numpy.load(DATA('chr{}.full.positive_contacts.npy'.format(i))) for i in chromosomes ]
+	midcontacts = [ numpy.load(DATA('chr{}.full.middle_contacts.npy'.format(i))) for i in chromosomes ]
+	regions     = [ numpy.load(DATA('chr{}.full.regions.npy'.format(i))) for i in chromosomes ]
 
 	for _iter in range(n_iter):
 		data = { 'x1seq' : numpy.zeros(batch_size, 1001, 4),
