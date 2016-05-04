@@ -37,43 +37,70 @@ cpdef numpy.ndarray translate( numpy.ndarray sequence, dict mapping ):
 
 	return ohe_sequence
 
-cpdef evaluate( map1, map2 ):
+cpdef count_band_regions( numpy.ndarray regions_ndarray ):
+	"""Calculate the number of regions in the band."""
+
+	cdef double* regions = <double*> regions_ndarray.data
+	cdef int n = regions_ndarray.shape[0], i, j
+	cdef int HIGH = HIGH_FITHIC_CUTOFF, LOW = LOW_FITHIC_CUTOFF
+	cdef long t = 0
+
+	with nogil:
+		for i in range(n):
+			for j in range(i):
+				if LOW <= regions[i] - regions[j] <= HIGH:
+					t += 1
+
+	return t
+
+cpdef evaluate( map1, map2, low_cutoff=None, high_cutoff=None, return_dist=False ):
 	"""Calculate the accuracy using map1 to predict map2."""
+
+	low_cutoff = low_cutoff or LOW_FITHIC_CUTOFF
+	high_cutoff = high_cutoff or HIGH_FITHIC_CUTOFF 
 
 	regions = numpy.array(list(set(map1.regions).intersection(set(map2.regions))))
 	regions.sort()
 	
+	print map1.regions.shape
+	print map2.regions.shape
+
+	d1 = contacts_to_qhashmap( map1.map )
+	d2 = contacts_to_qhashmap( map2.map )
+
 	cdef int n = regions.shape[0]**2/2, m = regions.shape[0]
 	cdef numpy.ndarray y_true = numpy.zeros(n)
 	cdef numpy.ndarray y_pred = numpy.zeros(n)
+	cdef numpy.ndarray dist = numpy.zeros(n)
 
 	cdef int i=0, j=0, k, l
 
 	for k in range(m):
 		mid1 = regions[k]
 
-		for l in range(m):
-			if l <= k:
-				continue
-
+		for l in range(k, m):
 			mid2 = regions[l]
 
 			j += 1
 			if j % 1000000 == 0:
 				print i, j, n
 
-			if mid2 > mid1 + HIGH_FITHIC_CUTOFF:
+			if mid2 > mid1 + high_cutoff:
 				break
-			elif mid2 < mid1 + LOW_FITHIC_CUTOFF:
+			elif mid2 < mid1 + low_cutoff:
 				continue
 			
-			y_pred[i] = map1.get((mid1, mid2), (1, 1))[0]
-			y_true[i] = 0 if map2.get((mid1, mid2), (1, 1))[1] > 0.01 else 1
+			y_pred[i] = d1.get((mid1, mid2), (1, 1))[0]
+			y_true[i] = 0 if d2.get((mid1, mid2), (1, 1))[1] > 0.01 else 1
+			dist[i] = mid2 - mid1
 			i += 1
 
 	print i, j, n
 	y_true = y_true[:i]
 	y_pred = -numpy.log(y_pred[:i])
+
+	if return_dist:
+		return y_true, y_pred, dist[:i]
 	return y_true, y_pred
 
 cpdef dict contacts_to_hashmap( numpy.ndarray contacts ):
@@ -144,85 +171,10 @@ cdef numpy.ndarray extract_dnases( float [:] dnase, int [:] centers, int window 
 
 	return dnases
 
-cpdef tuple extract_regions( int [:] x, numpy.ndarray chromosome, numpy.ndarray dnase, int window ):
+cpdef tuple extract_regions( numpy.ndarray x, numpy.ndarray chromosome, numpy.ndarray dnase, int window ):
 	"""Extract regions."""
 
 	cdef numpy.ndarray seq   = numpy.array(extract_sequences( chromosome, x, window ))
 	cdef numpy.ndarray dnases = numpy.array(extract_dnases( dnase, x, window ))	
 	return seq, dnases
 
-cdef void memmap_extract_sequences( float [:,:] chromosome, int [:] centers, int window, str name ):
-	"""Extract the sequences and save them to a memory map."""
-
-	print "-> Saving '{}'".format( name )
-	cdef int i, n = centers.shape[0]
-	cdef int breadth = 2*window+1
-	cdef int center
-
-	seqs = numpy.memmap( name, dtype='float32', mode='w+', shape=(n, breadth, 4))
-
-	for i in range(n):
-		center = edge_correct( centers[i], chromosome.shape[0], chromosome.shape[0], window )
-		seqs[i] = chromosome[center-window:center+window+1]
-
-		if i % 50000 == 0:
-			print "\tFlushing '{}' with {} items".format(name, i)
-			seqs.flush()
-
-	seqs.flush()
-	print "<- Done Saving '{}'".format( name )
-
-
-cdef void memmap_extract_dnases( float [:] dnase, int [:] centers, int window, str name ):
-	"""Extract the dnase and save them to a memory map."""
-
-	print "-> Saving '{}'".format( name )
-	cdef int i, n = centers.shape[0]
-	cdef int breadth = 2*window+1
-	cdef int center
-
-	dnases = numpy.memmap( name, dtype='float32', mode="w+", shape=(n, breadth, 1))
-
-	for i in range(n):
-		center = edge_correct( centers[i], dnase.shape[0], dnase.shape[0], window )
-		dnases[i,:,0] = dnase[center-window:center+window+1]
-
-		if i % 50000 == 0:
-			print "\tFlushing '{}' with {} items".format(name, i)
-			dnases.flush()
-
-	dnases.flush()
-	print "<- Done Saving '{}'".format( name )
-
-cpdef extract_full_dataset( chrom, window=500 ):
-	"""Extract the dataset given a chromosome."""
-
-	DATA_DIR = '/data/scratch/ssd/jmschr/contact/'
-
-	chromosome = numpy.load( '../data/chr{}.ohe.npy'.format(chrom) ).astype( 'float32' )
-	dnase      = numpy.load( '../data/chr{}.dnase.npy'.format(chrom) ).astype( 'float32' )
-	positive   = numpy.load( '../data/chr{}.full.positive_contacts.npy'.format(chrom), mmap_mode='r' )
-	negative   = numpy.load( '../data/chr{}.full.negative_contacts.npy'.format(chrom), mmap_mode='r' )
-
-	contacts = numpy.concatenate((positive, negative))
-	n = contacts.shape[0]
-	indices = numpy.arange(n)
-	numpy.random.shuffle(indices)
-
-	contacts = contacts[indices]
-
-	numpy.save( DATA_DIR + 'chr{}.full.x1coord.npy'.format(chrom), contacts[:,0] )
-	numpy.save( DATA_DIR + 'chr{}.full.x2coord.npy'.format(chrom), contacts[:,1] )
-
-	memmap_extract_sequences( chromosome, contacts[:,0], window, DATA_DIR + 'chr{}.full.x1seq.npy'.format(chrom) )
-	memmap_extract_sequences( chromosome, contacts[:,1], window, DATA_DIR + 'chr{}.full.x2seq.npy'.format(chrom) )
-
-	memmap_extract_dnases( dnase, contacts[:,0], window, DATA_DIR + 'chr{}.full.x1dnase.npy'.format(chrom) )
-	memmap_extract_dnases( dnase, contacts[:,1], window, DATA_DIR + 'chr{}.full.x2dnase.npy'.format(chrom) )
-
-	y = numpy.concatenate(( numpy.ones(positive.shape[0], dtype='float32'), numpy.zeros(negative.shape[0], dtype='float32') ))
-	y = y[indices]
-
-	numpy.save( DATA_DIR + 'chr{}.full.y.npy'.format(chrom), y )
-
-	os.system( 'mv {}chr{}* /net/noble/vol1/home/jmschr/proj/contact/data/'.format(DATA_DIR, chrom) )

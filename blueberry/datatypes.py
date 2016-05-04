@@ -7,7 +7,7 @@ The datatypes involved in this project. Currently supports a ContactMap
 which is the output from running Fit-Hi-C.
 """
 
-import pandas as pd
+import pandas
 import gzip
 import numpy
 import os
@@ -18,9 +18,47 @@ pyximport.install()
 
 from blueberry import *
 
-DATA_DIR = "/net/noble/vol1/data/hic-datasets/results/Rao-Cell2014/fixedWindowSize/fithic/afterICE/{0}/GM12878_combined.chr{1}.spline_pass1.res{0}.significances.txt.gz"
+RAO = "/net/noble/vol1/data/hic-datasets/results/Rao-Cell2014/"
+DATA_DIR = RAO + "fixedWindowSize/fithic/afterICE/{0}/{2}.chr{1}.spline_pass1.res{0}.significances.txt.gz"
+RAW_DIR = RAO + "rawFromGEO/{0}/{2}kb_resolution_intrachromosomal/chr{1}/MAPQGE30/chr{1}_{2}kb.KRnorm"
 
-class ContactMap(object):
+class RawContactMap(object):
+	"""This is a contact map which has not been processed at all.
+
+	This will convert a text file to a dense representation of the underlying
+	contact map as a numpy array.
+
+	Parameters
+	----------
+	celltype : str, options = (GM12878_combined, K562, IMR90, NHEK, HMEC, HUVEC) 
+		The celltype to use.
+
+	chromosome : int, range = (1, 22)
+		The chromosome number to use.
+
+	resolution : int
+		The resolution of the hic experiment.
+	"""
+
+	def __init__(self, celltype, chromosome, resolution=1000):
+		self.resolution = resolution
+		self.filename = DATA_DIR.format(resolution, chromosome, celltype)
+		self.chromosome = chromosome
+		self.celltype = celltype
+
+		data = pandas.read_csv(self.filename, sep="\t", engine='c', dtype='float64').values
+		self.regions = numpy.union1d(self.map[:,0], self.map[:,1])
+
+		n_bins = self.regions.max() / resolution
+		self.matrix = numpy.zeros((n_bins, n_bins), dtype='float32')
+
+		for i, j, contactCount in data.iterrow():
+			self.matrix[i / resolution, j / resolution] = contactCount
+
+	
+
+
+class FithicContactMap(object):
 	"""This represents a contact map which has been processed with Fit-Hi-C.
 
 	This will convert a text file to a sparse representation of the underlying
@@ -31,8 +69,14 @@ class ContactMap(object):
 
 	Parameters
 	----------
-	filename : str
-		The path to the file we wish to load.
+	celltype : str
+		The celltype to use. (GM12878_combined, K562, IMR90, NHEK, HMEC, HUVEC)
+
+	chromosome : int
+		The chromosome number to use. (1-22)
+
+	resolution : int
+		The resolution of the hic experiment.
 
 	Attributes
 	----------
@@ -46,45 +90,16 @@ class ContactMap(object):
 
 	map : array-like, shape (n_contacts, 4)
 		A numpy array storing (mid1, mid2, q, p) for each contact.
-
-	contacts : dict
-		A dictionary with keys as (mid1, mid2) and values as (q, p).
 	"""
 
-	def __init__(self, filename):
-		if isinstance( filename, tuple ):
-			self.filename = DATA_DIR.format( *filename ) 
+	def __init__(self, celltype, chromosome, resolution=1000):
+		self.resolution = resolution
+		self.filename = DATA_DIR.format(resolution, chromosome, celltype)
+		self.chromosome = chromosome
+		self.celltype = celltype
 
-		self.filename = filename
-		self.regions = {}
-		self.map = []
-		self.contacts = {}
-
-		for line in gzip.open(filename):
-			chr1, mid1, chr2, mid2, contactCount, p, q = line.split()
-
-			if chr1 != chr2:
-				continue
-
-			mid1, mid2, contactCount, p, q = int(mid1), int(mid2), int(contactCount), float(p), float(q)
-
-			self.regions[mid1] = 1
-			self.regions[mid2] = 1
-
-			#if q == 1.0:
-			#	continue
-
-			self.map.append( [mid1, mid2, p, q] )
-			self.contacts[mid1, mid2] = p, q
-
-		self.map = numpy.array(self.map)
-		self.regions = numpy.array(self.regions.keys(), dtype='int')
-
-	def get(self, key, default):
-		return self.contacts.get(key, default) 
-
-	def has_contact(self, mid1, mid2):
-		return self.contacts.has_key((mid1, mid2))
+		self.map = pandas.read_csv(self.filename, sep="\t", usecols=[1, 3, 4, 5, 6], engine='c', dtype='float64').values
+		self.regions = numpy.union1d(self.map[:,0], self.map[:,1])
 
 	def decimate(self, resolution=5000):
 		"""Decimate the map to a lower resolution using an aggregate.
@@ -98,13 +113,27 @@ class ContactMap(object):
 			The resolution we wish to decimate to.
 		""" 
 
-		self.contacts = {}
+		self.resolution = resolution
 		self.map[:,:2] = (self.map[:,:2].astype('int') + resolution) / resolution * resolution - resolution/2
+		contact_values = {}
 
-		for mid1, mid2, p, q in self.map:
+		for mid1, mid2, contactCount, p, q in self.map:
 			key = mid1, mid2
-			p0, q0 = self.contacts.get(key, (1, 1))
-			self.contacts[key] = p*p0, min(q, q0)
+			contact0, p0, q0 = contact_values.get(key, (0, 1, 1))
+			contact_values[key] = contactCount + contact0, p*p0, min(q, q0)
 
-		self.map = numpy.array([[mid1, mid2, p, q] for (mid1, mid2), (p, q) in self.contacts.items()])
-		self.regions = numpy.unique( (self.regions + resolution) / resolution * resolution - resolution/2 )
+		self.map = numpy.array([[mid1, mid2, contactCount, p, q] for (mid1, mid2), (contactCount, p, q) in contact_values.items()])
+		self.regions = numpy.union1d(self.map[:,0], self.map[:,1])
+
+	def contacts(self):
+		"""Return all contacts with a q-value <= Q_LOWER_BOUND.
+
+		Returns
+		-------
+		contacts : numpy.ndarray, shape=(n_contacts, 2)
+			The pair of midpoints for each contact
+		"""
+
+		return self.map[self.map[:, 4] <= Q_LOWER_BOUND, :2]
+
+

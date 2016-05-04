@@ -17,64 +17,107 @@ try:
 except:
 	print "ImportWarning: mxnet not imported"
 
+from .blueberry import *
+
 Q_LOWER_BOUND = 0.01
 Q_UPPER_BOUND = 0.50
 HIGH_FITHIC_CUTOFF = 10000000
-LOW_FITHIC_CUTOFF = 10000
+LOW_FITHIC_CUTOFF =  25000
 DATA_DIR = "/net/noble/vol1/home/jmschr/proj/contact/data"
 DATA = lambda name: DATA_DIR + "/{}".format(name)
 
-def shuffle_mmap( name, shape, dtype, indices ):
-	"""Shuffle a memory map.
+def negative_coordinate_pair( regions, contacts ):
+	"""Returns a valid coordinate.
 
 	Parameters
 	----------
-	name : str
-		The path to the memory map to open.
+	regions : numpy.ndarray
+		Valid mappable regions in the chromosome.
 
-	shape : tuple
-		The shape of each element in the memory map. For example, data which is
-		eventually (5, 1, 4, 1) would be have a shape of (1, 4, 1).
-
-	dtype : str, optional
-		The data type to read in. Must be a numpy dtype.
-
-	indices : array-like of ints
-		The new positions
-	"""
-
-	X = mmap(name, shape, dtype)
-	X = X[indices]
-	X.flush()
-
-def mmap( name, shape, dtype='int8' ):
-	"""Return a properly formatted memory map.
-
-	This will read in a memory map as a 1d array of numbers, and return it
-	properly formatted.
-
-	Parameters
-	----------
-	name : str
-		The path to the memory map to open.
-
-	shape : tuple
-		The shape of each element in the memory map. For example, data which is
-		eventually (5, 1, 4, 1) would be have a shape of (1, 4, 1).
-
-	dtype : str, optional
-		The data type to read in. Must be a numpy dtype.
+	contacts : dict
+		Pairs of contacts
 
 	Returns
-	------
-	mmap : numpy.memmap
-		The numpy memory map of properly formatted data.
+	-------
+	coordinates : tuple
+		Region pair tuple
 	"""
 
-	data = numpy.memmap( name, dtype=dtype, mode='r' )
-	k = numpy.prod(shape)
-	n = int(data.shape[0] / k)
-	return data.reshape(n, *shape)
+	while True:
+		mid1, mid2 = numpy.random.choice(regions, 2)
+		mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
+
+		if not (LOW_FITHIC_CUTOFF <= mid2 - mid1 <= HIGH_FITHIC_CUTOFF):
+			continue
+
+		if contacts.has_key( (mid1, mid2) ):
+			continue
+
+		break
+
+	return mid1, mid2
+
+def balanced_random_sample( regions, contacts ):
+	"""Returns a balanced subset from the given contacts, regions, and restrictions.
+
+	Parameters
+	----------
+	regions : numpy.ndarray
+		Valid mappable regions in the chromosome.
+
+	contacts : dict
+		Pairs of contacts
+
+	Returns
+	-------
+	coordinates : numpy.ndarray, shape=(n_contacts*2, 2)
+		The coordinates for positive and negative samples
+
+	y : numpy.ndarray, shape=(n_contacts*2,)
+		Whether the coordinates indicate a contact or not.
+	"""
+
+	n = contacts.shape[0]
+	coordinates = numpy.zeros((n*2, 2))
+	y = numpy.concatenate((numpy.ones(n), numpy.zeros(n)))
+	contact_dict = contacts_to_hashmap(contacts)
+
+	coordinates[:n] = contacts
+	for i in range(n):
+		coordinates[i+n] = negative_coordinate_pair(regions, contact_dict)
+
+	return coordinates, y
+
+def benjamini_hochberg(p, alpha, n):
+	"""Run the benjamini hochberg procedure on a vector of -sorted- p-values.
+
+	Runs the procedure on a vector of p-values, and returns a mask of points
+	which satisfy the q-value threshold specified by alpha.
+
+	Parameters
+	----------
+	p : numpy.ndarray
+		A vector of p values
+
+	alpha : double, range=(0, 1)
+		The final q-value we're going to return. Used in the step size.
+
+	Returns
+	-------
+	mask : numpy.ndarray, shape=(p.shape[0],)
+		boolean mask of values which satisfy the index.
+	
+	pval : double
+		The threshold pvalue
+	"""
+
+	step = 1. * alpha / n
+	mask = numpy.zeros(p.shape[0], dtype='int8')
+	for i in xrange(p.shape[0]):
+		if p[i] <= step*(i+1):
+			mask[i] = 1
+
+	return mask
 
 def MxNetArray( path, inputs, shapes, dtypes, label=None, batch_size=1024 ):
 	"""Returns a properly formatted mxnet data iterator. 
@@ -157,6 +200,6 @@ def plot_pr_auc(y_true, y_pred, outfile="pr_auc.png"):
 	plt.ylabel( "Precision", fontsize=14 )
 	plt.plot( recall, precision, c='c', label="AUC = {}".format( eval_auc ) )
 	plt.plot( [0,1], [0.5, 0.5], c='k', alpha=0.6 )
-	plt.ylim(0.5, 1.0)
+	plt.ylim(0.0, 1.0)
 	plt.legend( loc=4 )
 	plt.savefig(outfile)
