@@ -7,8 +7,15 @@ These are utility functions which are re-used in many components.
 """
 
 import numpy
-import mxnet as mx
 from sklearn.metrics import *
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+try:
+	import mxnet as mx
+except:
+	print "ImportWarning: mxnet not imported"
 
 Q_LOWER_BOUND = 0.01
 Q_UPPER_BOUND = 0.50
@@ -109,7 +116,7 @@ def MxNetArray( path, inputs, shapes, dtypes, label=None, batch_size=1024 ):
 
 	return data
 
-def plot_pr_auc(y_true, y_pred, outfile="roc_pr.png"):
+def plot_pr_auc(y_true, y_pred, outfile="pr_auc.png"):
 	"""Plot a ROC and PR curve on the same plot.
 
 	Parameters
@@ -152,3 +159,4 @@ def plot_pr_auc(y_true, y_pred, outfile="roc_pr.png"):
 	plt.plot( [0,1], [0.5, 0.5], c='k', alpha=0.6 )
 	plt.ylim(0.5, 1.0)
 	plt.legend( loc=4 )
+	plt.savefig(outfile)

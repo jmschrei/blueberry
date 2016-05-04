@@ -58,6 +58,7 @@ class ContactMap(object):
 		self.filename = filename
 		self.regions = {}
 		self.map = []
+		self.contacts = {}
 
 		for line in gzip.open(filename):
 			chr1, mid1, chr2, mid2, contactCount, p, q = line.split()
@@ -70,14 +71,14 @@ class ContactMap(object):
 			self.regions[mid1] = 1
 			self.regions[mid2] = 1
 
-			if q == 1.0:
-				continue
+			#if q == 1.0:
+			#	continue
 
-			self.map.append( [mid1, mid2, q, p] )
+			self.map.append( [mid1, mid2, p, q] )
+			self.contacts[mid1, mid2] = p, q
 
 		self.map = numpy.array(self.map)
 		self.regions = numpy.array(self.regions.keys(), dtype='int')
-		self.contacts = contacts_to_qhashmap( self.map )
 
 	def get(self, key, default):
 		return self.contacts.get(key, default) 
@@ -97,16 +98,13 @@ class ContactMap(object):
 			The resolution we wish to decimate to.
 		""" 
 
-		contacts = {}
+		self.contacts = {}
 		self.map[:,:2] = (self.map[:,:2].astype('int') + resolution) / resolution * resolution - resolution/2
 
-		for mid1, mid2, q, p in self.map:
+		for mid1, mid2, p, q in self.map:
 			key = mid1, mid2
-			q0, p0 = contacts.get(key, (1, 1))
+			p0, q0 = self.contacts.get(key, (1, 1))
+			self.contacts[key] = p*p0, min(q, q0)
 
-			q = q if q < q0 else q0
-			contacts[key] = q, p*p0
-
-		self.map = numpy.array([[mid1, mid2, q, p] for (mid1, mid2), (q, p) in contacts.items()])
+		self.map = numpy.array([[mid1, mid2, p, q] for (mid1, mid2), (p, q) in self.contacts.items()])
 		self.regions = numpy.unique( (self.regions + resolution) / resolution * resolution - resolution/2 )
-		self.contacts = contacts_to_qhashmap( self.map )
