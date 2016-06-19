@@ -19,8 +19,9 @@ pyximport.install()
 from blueberry import *
 
 RAO = "/net/noble/vol1/data/hic-datasets/results/Rao-Cell2014/"
-DATA_DIR = RAO + "fixedWindowSize/fithic/afterICE/{0}/{2}.chr{1}.spline_pass1.res{0}.significances.txt.gz"
-RAW_DIR = RAO + "rawFromGEO/{0}/{2}kb_resolution_intrachromosomal/chr{1}/MAPQGE30/chr{1}_{2}kb.KRnorm"
+DATA_DIR = RAO + "fixedWindowSize/fithic/afterICE/{2}/{0}.chr{1}.spline_pass1.res{2}.significances.txt.gz"
+RAW_DIR = RAO + "rawFromGEO/{0}/{2}kb_resolution_intrachromosomal/chr{1}/MAPQGE30/chr{1}_{2}kb.RAWobserved"
+KR_NORM = RAO + "rawFromGEO/{0}/{2}kb_resolution_intrachromosomal/chr{1}/MAPQGE30/chr{1}_{2}kb.KRnorm"
 
 class RawContactMap(object):
 	"""This is a contact map which has not been processed at all.
@@ -42,7 +43,8 @@ class RawContactMap(object):
 
 	def __init__(self, celltype, chromosome, resolution=1000):
 		self.resolution = resolution
-		self.filename = DATA_DIR.format(resolution, chromosome, celltype)
+		self.filename = RAW_DIR.format(celltype, chromosome, resolution)
+		self.norm = numpy.loadtxt(KR_NORM.format(celltype, chromosome, resolution))
 		self.chromosome = chromosome
 		self.celltype = celltype
 
@@ -94,7 +96,7 @@ class FithicContactMap(object):
 
 	def __init__(self, celltype, chromosome, resolution=1000):
 		self.resolution = resolution
-		self.filename = DATA_DIR.format(resolution, chromosome, celltype)
+		self.filename = DATA_DIR.format(celltype, chromosome, resolution)
 		self.chromosome = chromosome
 		self.celltype = celltype
 
