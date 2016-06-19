@@ -5,7 +5,7 @@ import numpy as np
 
 extensions = [
             Extension( "blueberry.*", 
-                       [ "blueberry/blueberry.pyx" ], 
+                       [ "blueberry/*.pyx" ], 
                        include_dirs=[np.get_include()] )
     ]
 
