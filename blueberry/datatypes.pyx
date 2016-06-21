@@ -270,10 +270,10 @@ cdef class ContactMap(object):
 
 		cdef int d = self.n_bins + 1
 		cdef numpy.ndarray matrix = numpy.zeros((d, d), dtype='float64')
-		cdef numpy.ndarray contacts = numpy.nan_to_num(contacts).astype('float64')
+		cdef numpy.ndarray data = numpy.nan_to_num(contacts).astype('float64')
 		cdef int n = data.shape[0]
 
-		cdef double* data_ptr = <double*> contacts.data
+		cdef double* data_ptr = <double*> data.data
 		cdef double* matrix_ptr = <double*> matrix.data
 		cdef int i, j, k
 		cdef double contactCount
