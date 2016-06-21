@@ -234,6 +234,59 @@ cdef class ContactMap(object):
 		eigenvalues, eigenvectors = scipy.sparse.linalg.eigsh(self.matrix, k=1)
 		return eigenvectors[:,0]
 
+	@classmethod
+	def from_arrays(cls, contacts, KRnorm=None, KRexpected=None):
+		"""Create a contact map from numpy arrays.
+
+		Take in a sparse representation of contacts in the format of
+		i, j, contactCount where i and j represent the mid points of contact,
+		as well as optionally take in arrays corresponding to the KR matrix
+		balancing norm and the expected number of contacts for a given
+		genomic distance. No files required.
+
+		Parameters
+		----------
+		contacts : numpy.ndarray, shape=(n, 3)
+			Take in a sparse representation of the contacts in the format
+			i, j, contactCount, where i and j are the two midpoints, and
+			contactCount is the integer count of the number of contacts.
+
+		KRnorm : numpy.ndarray
+			The KR matrix balancing norm array. This contains a normalization
+			constant for each column/row in the matrix. Optional for creating
+			the object but required for normalization.
+
+		KRexpected : numpy.ndarray
+			The normalization constants for each genomic distance away from
+			the diagonal. Optional for creating the object for required for
+			normalization.
+		"""
+
+		self.KRnorm = KRnorm
+		self.KRexpected = KRexpected
+		self.regions = numpy.union1d(data[:,0], data[:,1])
+		self.regions.sort()
+		self.n_bins = self.regions.shape[0]
+
+		cdef int d = self.n_bins + 1
+		cdef numpy.ndarray matrix = numpy.zeros((d, d), dtype='float64')
+		cdef numpy.ndarray contacts = numpy.nan_to_num(contacts).astype('float64')
+		cdef int n = data.shape[0]
+
+		cdef double* data_ptr = <double*> data.data
+		cdef double* matrix_ptr = <double*> matrix.data
+		cdef int i, j, k
+		cdef double contactCount
+
+		for i in range(n):
+			j = data_ptr[i] / resolution
+			k = data_ptr[n+i] / resolution
+			contactCount = data_ptr[2*n+i]
+
+			matrix_ptr[j*d + k] = contactCount
+			matrix_ptr[k*d + j] = contactCount
+
+		self.matrix = matrix
 
 class FithicContactMap(object):
 	"""This represents a contact map which has been processed with Fit-Hi-C.
@@ -312,5 +365,3 @@ class FithicContactMap(object):
 		"""
 
 		return self.map[self.map[:, 4] <= Q_LOWER_BOUND, :2]
-
-
