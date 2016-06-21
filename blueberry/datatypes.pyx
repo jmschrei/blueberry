@@ -264,7 +264,7 @@ cdef class ContactMap(object):
 
 		self.KRnorm = KRnorm
 		self.KRexpected = KRexpected
-		self.regions = numpy.union1d(data[:,0], data[:,1])
+		self.regions = numpy.union1d(contacts[:,0], contacts[:,1])
 		self.regions.sort()
 		self.n_bins = self.regions.shape[0]
 
