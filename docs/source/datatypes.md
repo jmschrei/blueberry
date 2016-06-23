@@ -9,9 +9,6 @@ have the format i, j, contactCount, p, q.
 API Reference
 -------------
 
-API Reference
--------------
-
 ```eval_rst
 .. automodule:: blueberry.datatypes
     :members:
