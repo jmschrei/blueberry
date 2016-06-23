@@ -6,6 +6,8 @@
 Welcome to blueberry's documentation!
 =====================================
 
+Greetings world, this is blueberry.
+
 Contents:
 
 .. toctree::
