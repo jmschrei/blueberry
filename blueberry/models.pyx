@@ -89,9 +89,9 @@ class MultiCellTypeGenerator(DataIter):
 
 		while True:
 			data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
-			         'x2seq' : numpy.zeros((batch_size, window, 4)),
-			         'x1dnase' : numpy.zeros((batch_size, window, 1)),
-			         'x2dnase' : numpy.zeros((batch_size, window, 1)) }
+					 'x2seq' : numpy.zeros((batch_size, window, 4)),
+					 'x1dnase' : numpy.zeros((batch_size, window, 1)),
+					 'x2dnase' : numpy.zeros((batch_size, window, 1)) }
 
 			if self.coord:
 				data['x1coord'] = numpy.zeros((batch_size, 1))
@@ -192,9 +192,9 @@ class DecimationGenerator(DataIter):
 
 		while j < self.contacts.shape[0]:
 			data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
-			         'x2seq' : numpy.zeros((batch_size, window, 4)),
-			         'x1dnase' : numpy.zeros((batch_size, window, 1)),
-			         'x2dnase' : numpy.zeros((batch_size, window, 1)) }
+					 'x2seq' : numpy.zeros((batch_size, window, 4)),
+					 'x1dnase' : numpy.zeros((batch_size, window, 1)),
+					 'x2dnase' : numpy.zeros((batch_size, window, 1)) }
 
 			if self.coord:
 				data['x1coord'] = numpy.zeros((batch_size, 1))
@@ -296,9 +296,9 @@ class ValidationGenerator(DataIter):
 
 		while j < self.contacts.shape[0] - batch_size*2:
 			data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
-			         'x2seq' : numpy.zeros((batch_size, window, 4)),
-			         'x1dnase' : numpy.zeros((batch_size, window, 1)),
-			         'x2dnase' : numpy.zeros((batch_size, window, 1)) }
+					 'x2seq' : numpy.zeros((batch_size, window, 4)),
+					 'x1dnase' : numpy.zeros((batch_size, window, 1)),
+					 'x2dnase' : numpy.zeros((batch_size, window, 1)) }
 
 			if self.coord:
 				data['x1coord'] = numpy.zeros((batch_size, 1))
@@ -405,9 +405,9 @@ class TrainingGenerator(DataIter):
 
 		while True:
 			data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
-			         'x2seq' : numpy.zeros((batch_size, window, 4)),
-			         'x1dnase' : numpy.zeros((batch_size, window, 1)),
-			         'x2dnase' : numpy.zeros((batch_size, window, 1)) }
+					 'x2seq' : numpy.zeros((batch_size, window, 4)),
+					 'x1dnase' : numpy.zeros((batch_size, window, 1)),
+					 'x2dnase' : numpy.zeros((batch_size, window, 1)) }
 
 			if self.coord:
 				data['x1coord'] = numpy.zeros((batch_size, 1))
@@ -485,7 +485,7 @@ def Seq( seq ):
 
 def DNase( dnase ):
 	pool = Pooling( dnase, kernel=(9, 1), stride=(9, 1), pool_type='avg' )
- 	return pool
+	return pool
 
 def Arm( seq, dnase ):
 	x = Concat( Seq(seq), DNase(dnase) )
