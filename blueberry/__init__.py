@@ -39,4 +39,5 @@ from .blueberry import *
 from .datasets import *
 from .datatypes import *
 from .models import *
+from .fithic import *
 from .utils import *
