@@ -36,6 +36,125 @@ random.seed(0)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
+def contact_map_to_hashmap( contacts ):
+	"""Take in a contact map and return a dictionary."""
+
+	d = {}
+	for celltype, chromosome, mid1, mid2, p in contacts:
+		d[celltype, chromosome, mid1, mid2] = p
+		d[celltype, chromosome, mid2, mid1] = p
+
+	return d
+
+class MultiCellTypeGenerator(DataIter):
+	"""Generator iterator, collects batches from a generator showing a full subset."""
+
+	def __init__(self, sequences, dnases, contacts, regions, window, data_shapes={}, use_coord=False, batch_size=1):
+		super(MultiCellTypeGenerator, self).__init__()
+
+		self.sequence      = sequences
+		self.dnases        = dnases
+		self.contacts      = contacts
+		self.contact_dict  = contact_map_to_hashmap(contacts)
+		self.regions       = regions
+		self.coord         = use_coord
+		self.celltypes     = numpy.unique(contacts[:,0])
+		
+		self.m = self.celltypes.shape[0]
+		self.n = len(sequences)
+
+		self.window = window
+		self.data_shapes = data_shapes
+		self.batch_size = batch_size
+		self.t = 0
+
+	@property
+	def provide_data(self):
+		"""The name and shape of data provided by this iterator"""
+		return [(k, tuple([self.batch_size] + list(v))) for k, v in self.data_shapes.items()]
+
+	@property
+	def provide_label(self):
+		"""The name and shape of label provided by this iterator"""
+		return [('softmax_label', (self.batch_size,))]
+
+	def __iter__(self):
+		sequence   = self.sequence
+		dnases     = self.dnases
+		contacts   = self.contacts
+		regions    = self.regions
+		window     = self.window
+		batch_size = self.batch_size
+		width      = window/2
+
+		while True:
+			data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
+			         'x2seq' : numpy.zeros((batch_size, window, 4)),
+			         'x1dnase' : numpy.zeros((batch_size, window, 1)),
+			         'x2dnase' : numpy.zeros((batch_size, window, 1)) }
+
+			if self.coord:
+				data['x1coord'] = numpy.zeros((batch_size, 1))
+				data['x2coord'] = numpy.zeros((batch_size, 1))
+
+			labels = { 'softmax_label' : numpy.zeros(batch_size) }
+
+			i = 0
+			l = contacts.shape[0]
+			while i < batch_size:
+				tic = time.time()
+				if i % 2 == 0:
+					k = numpy.random.randint(l)
+					d, c, mid1, mid2 = contacts[k, :4]
+					if not (LOW_FITHIC_CUTOFF <= mid2 - mid1 <= HIGH_FITHIC_CUTOFF):
+						continue
+
+				else:
+					d = numpy.random.choice(self.celltypes)
+					c = numpy.random.randint(self.n)
+					if d in (1, 2) and c == 8:
+						continue
+
+					while True:
+						mid1, mid2 = numpy.random.choice(regions[d, c], 2)
+						mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
+						if not self.contact_dict.has_key( (d, c, mid1, mid2) ):
+							break
+
+				labels['softmax_label'][i] = (i+1)%2
+
+				data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
+				data['x2seq'][i] = sequence[c][mid2-width:mid2+width]
+
+				data['x1dnase'][i, :, 0] = dnases[d][c][mid1-width:mid1+width]
+				data['x2dnase'][i, :, 0] = dnases[d][c][mid2-width:mid2+width]
+
+				if self.coord:
+					data['x1coord'][i] = mid1
+					data['x2coord'][i] = mid2
+
+				i += 1
+
+			data['x1seq'] = data['x1seq'].reshape(batch_size, 1, window, 4)
+			data['x2seq'] = data['x2seq'].reshape(batch_size, 1, window, 4)
+			data['x1dnase'] = data['x1dnase'].reshape(batch_size, 1, window, 1)
+			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 1)
+
+			data['x1dnase'][ data['x1dnase'] == 0 ] = 1
+			data['x2dnase'][ data['x2dnase'] == 0 ] = 1
+			data['x1dnase'] = numpy.log(data['x1dnase'])
+			data['x2dnase'] = numpy.log(data['x2dnase'])
+
+			data = [ array(data[l]) for l in self.data_shapes.keys() ]
+			labels = [ array(labels['softmax_label']) ]
+
+			self.t += time.time() - tic
+			print time.time() - tic
+			yield DataBatch(data=data, label=labels, pad=0, index=None)
+
+	def reset(self):
+		pass
+
 class DecimationGenerator(DataIter):
 	"""Generator iterator, collects batches from a generator showing a full subset.
 
