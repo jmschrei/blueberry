@@ -702,8 +702,7 @@ def DNaseRambutan(**kwargs):
 	x1chrom = Dense(x1chrom, 256)
 
 	x1 = Concat(x1seq, x1chrom)
-	x1 = Dense(x1, 512)
-
+	x1 = Dense(x1, 256)
 
 	x2seq = Variable(name="x2seq")
 	x2dnase = Variable(name="x2dnase")
@@ -714,12 +713,12 @@ def DNaseRambutan(**kwargs):
 	x2seq = Convolution(x2seq, 48, (7, 1))
 	x2seq = Flatten(Pooling(x2seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
-	x2dnase = Pooling(x1dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max')
-	x2chrom = Concat(x1dnase, x1hist)
+	x2dnase = Pooling(x2dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max')
+	x2chrom = Concat(x2dnase, x2hist)
 	x2chrom = Dense(x2chrom, 256)
 
 	x2 = Concat(x2seq, x2chrom)
-	x2 = Dense(x2, 512)
+	x2 = Dense(x2, 256)
 
 	xd = Variable(name="distance")
 	xd = Dense(xd, 64)
