@@ -730,7 +730,7 @@ def DNaseRambutan(**kwargs):
 	x = mx.symbol.FullyConnected(x, num_hidden=2)
 
 	y = SoftmaxOutput( data=x, name='softmax' )
-	model = mx.model.FeedForward( symbol=softmax, **kwargs )
+	model = mx.model.FeedForward( symbol=y, **kwargs )
 	return model
 
 def BoostedRambutan(**kwargs):
