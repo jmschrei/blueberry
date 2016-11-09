@@ -638,14 +638,15 @@ def DNase( dnase ):
 	conv1 = Convolution( pool1, 12, (5, 8), pad=(2, 0) )
 	return conv1
 
-def Arm( seq, dnase ):
+def Arm( seq, dnase, hist ):
 	x = Concat( Seq(seq), DNase(dnase) )
 
-	conv1 = Convolution( x, 64, (1, 1) )
-	conv2 = Convolution( conv1, 64, (3, 1) )
-	pool = Flatten( Pooling( conv2, kernel=(30, 1), stride=(30, 1), pool_type='max' ) )
-	ip1 = Dense( pool, 512 )
-	return ip1
+	x = Convolution(x, 64, (1, 1))
+	x = Convolution(x, 64, (3, 1))
+	x = Flatten(Pooling(x, kernel=(100, 1), stride=(100, 1), pool_type='max' ))
+	x = Concat(x, hist)
+	x = Dense(x, 512)
+	return x
 
 def Rambutan(**kwargs):
 	"""Create the Rambutan model.
@@ -673,12 +674,12 @@ def Rambutan(**kwargs):
 	x1hist_ip1 = Dense(x1hist, 64)
 	x2hist_ip1 = Dense(x2hist, 64)
 
-	x1 = Arm(x1seq, x1dnase)
-	x2 = Arm(x2seq, x2dnase)
+	x1 = Arm(x1seq, x1dnase, x1hist)
+	x2 = Arm(x2seq, x2dnase, x1hist)
 
 	xd = Variable(name="distance")
 	xd_ip1 = Dense(xd, 64)
-	x = Concat(x1, x2, xd_ip1, x1hist_ip1, x2hist_ip1)
+	x = Concat(x1, x2, xd_ip1)
 
 	ip1 = Dense(x, 512)
 	ip2 = Dense(ip1, 512)
