@@ -37,6 +37,43 @@ cpdef numpy.ndarray translate( numpy.ndarray sequence, dict mapping ):
 
 	return ohe_sequence
 
+def benjamini_hochberg(numpy.ndarray p_values, long n):
+	"""Run the benjamini hochberg procedure on a vector of -sorted- p-values.
+
+	Runs the procedure on a vector of p-values, and returns the q-values for
+	each point.
+
+	Parameters
+	----------
+	p_values : numpy.ndarray
+		A vector of p values
+
+	n : int
+		The number of tests which have been run.
+
+	Returns
+	-------
+	q_values : numpy.ndarray
+		The q-values for each point.
+	"""
+
+	p_values = p_values.astype('float64')
+
+	cdef long i, d = p_values.shape[0]
+	cdef double q_value, prev_q_value = 0.0
+
+	cdef numpy.ndarray q_values = numpy.zeros_like(p_values)
+
+	for i in range(d):
+		q_value = p_values[i] * n / (i+1)
+		q_value = min(q_value, 1)
+		q_value = max(q_value, prev_q_value)
+
+		q_values[i] = q_value
+		prev_q_value = q_value
+
+	return q_values
+
 cpdef count_band_regions( numpy.ndarray regions_ndarray ):
 	"""Calculate the number of regions in the band."""
 
@@ -53,55 +90,18 @@ cpdef count_band_regions( numpy.ndarray regions_ndarray ):
 
 	return t
 
-cpdef evaluate( map1, map2, low_cutoff=None, high_cutoff=None, return_dist=False ):
-	"""Calculate the accuracy using map1 to predict map2."""
+cpdef downsample(float[:, :] yp1, float[:, :] yp5, float[:, :] yp5i):
+	cdef int i, j, k, ni, nj
+	cdef int n5 = yp5.shape[0]
 
-	low_cutoff = low_cutoff or LOW_FITHIC_CUTOFF
-	high_cutoff = high_cutoff or HIGH_FITHIC_CUTOFF 
+	for i in range(n5-1):
+		for j in range(n5-1):
 
-	regions = numpy.array(list(set(map1.regions).intersection(set(map2.regions))))
-	regions.sort()
-	
-	print map1.regions.shape
-	print map2.regions.shape
+			for ni in range(i*5, (i+1)*5):
+				for nj in range(j*5, (j+1)*5):
+					yp5i[i, j] = max(yp5i[i, j], yp1[ni, nj])
 
-	d1 = contacts_to_qhashmap( map1.map )
-	d2 = contacts_to_qhashmap( map2.map )
-
-	cdef int n = regions.shape[0]**2/2, m = regions.shape[0]
-	cdef numpy.ndarray y_true = numpy.zeros(n)
-	cdef numpy.ndarray y_pred = numpy.zeros(n)
-	cdef numpy.ndarray dist = numpy.zeros(n)
-
-	cdef int i=0, j=0, k, l
-
-	for k in range(m):
-		mid1 = regions[k]
-
-		for l in range(k, m):
-			mid2 = regions[l]
-
-			j += 1
-			if j % 1000000 == 0:
-				print i, j, n
-
-			if mid2 > mid1 + high_cutoff:
-				break
-			elif mid2 < mid1 + low_cutoff:
-				continue
-			
-			y_pred[i] = d1.get((mid1, mid2), (1, 1))[0]
-			y_true[i] = 0 if d2.get((mid1, mid2), (1, 1))[1] > 0.01 else 1
-			dist[i] = mid2 - mid1
-			i += 1
-
-	print i, j, n
-	y_true = y_true[:i]
-	y_pred = -numpy.log(y_pred[:i])
-
-	if return_dist:
-		return y_true, y_pred, dist[:i]
-	return y_true, y_pred
+	return numpy.array(yp5i)
 
 cpdef dict contacts_to_hashmap( numpy.ndarray contacts ):
 	"""Take in pairs of contacts and build a hashmap of tuples for fast lookup."""
@@ -140,41 +140,3 @@ cpdef dict contacts_to_qhashmap( numpy.ndarray contacts ):
 		contact_map[(mid2, mid1)] = (p, q)
 
 	return contact_map
-
-cdef inline int edge_correct( int peak, int n, int m, int l ):
-	if peak >= n-l-1:
-		peak = n-l-1
-	if peak >= m-l-1:
-		peak = m-l-1
-	return peak
-
-cdef numpy.ndarray extract_sequences( int [:,:] chromosome, int [:] centers, int window ):
-	"""Extract a window of size 251 from the chromosome, centered around the peak."""
-
-	cdef int i, n = centers.shape[0]
-	cdef numpy.ndarray seqs = numpy.zeros((n, 2*window+1, 4), dtype=numpy.int32)
-
-	for i in range(n):
-
-		seqs[i] = chromosome[centers[i]-window:centers[i]+window+1]
-
-	return seqs
-
-cdef numpy.ndarray extract_dnases( float [:] dnase, int [:] centers, int window ):
-	"""Extract a window of size 251 from the chromosome, centered around the peak."""
-
-	cdef int i, n = centers.shape[0]
-	cdef numpy.ndarray dnases = numpy.zeros((n, 2*window+1, 1), dtype=numpy.float64)
-
-	for i in range(n):
-		dnases[i,:,0] = dnase[centers[i]-window:centers[i]+window+1]
-
-	return dnases
-
-cpdef tuple extract_regions( numpy.ndarray x, numpy.ndarray chromosome, numpy.ndarray dnase, int window ):
-	"""Extract regions."""
-
-	cdef numpy.ndarray seq   = numpy.array(extract_sequences( chromosome, x, window ))
-	cdef numpy.ndarray dnases = numpy.array(extract_dnases( dnase, x, window ))	
-	return seq, dnases
-

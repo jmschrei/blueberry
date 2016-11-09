@@ -235,59 +235,42 @@ cdef class ContactMap(object):
 		return eigenvectors[:,0]
 
 	@classmethod
-	def from_arrays(cls, contacts, KRnorm=None, KRexpected=None):
+	def from_arrays(cls, celltype, chromosome, resolution, contacts):
 		"""Create a contact map from numpy arrays.
 
 		Take in a sparse representation of contacts in the format of
-		i, j, contactCount where i and j represent the mid points of contact,
+		i, j, statistic where i and j represent the mid points of contact,
 		as well as optionally take in arrays corresponding to the KR matrix
 		balancing norm and the expected number of contacts for a given
 		genomic distance. No files required.
 
 		Parameters
 		----------
+		celltype : str, options = (GM12878_combined, K562, IMR90, NHEK, HMEC, HUVEC) 
+			The celltype to use.
+
+		chromosome : int, range = (1, 22)
+			The chromosome number to use.
+
+		resolution : int
+			The resolution of the hic experiment.
+
 		contacts : numpy.ndarray, shape=(n, 3)
 			Take in a sparse representation of the contacts in the format
-			i, j, contactCount, where i and j are the two midpoints, and
-			contactCount is the integer count of the number of contacts.
-
-		KRnorm : numpy.ndarray
-			The KR matrix balancing norm array. This contains a normalization
-			constant for each column/row in the matrix. Optional for creating
-			the object but required for normalization.
-
-		KRexpected : numpy.ndarray
-			The normalization constants for each genomic distance away from
-			the diagonal. Optional for creating the object for required for
-			normalization.
+			i, j, statistic, where i and j are the two midpoints, and
+			statsitci is some statistic to show.
 		"""
 
-		self.KRnorm = KRnorm
-		self.KRexpected = KRexpected
-		self.regions = numpy.union1d(contacts[:,0], contacts[:,1])
-		self.regions.sort()
-		self.n_bins = self.regions.shape[0]
+		a = ContactMap(celltype, chromosome, resolution)
+		a.matrix *= 0
 
-		cdef int d = self.n_bins + 1
-		cdef numpy.ndarray matrix = numpy.zeros((d, d), dtype='float64')
-		cdef numpy.ndarray data = numpy.nan_to_num(contacts).astype('float64')
-		cdef int n = data.shape[0]
+		a.regions = numpy.union1d(contacts[:,0], contacts[:,1])
+		for mid1, mid2, statistic in contacts:
+			mid1 = int((mid1 - resolution / 2) / resolution)
+			mid2 = int((mid2 - resolution / 2) / resolution)
+			a.matrix[mid1, mid2] = statistic
 
-		cdef double* data_ptr = <double*> data.data
-		cdef double* matrix_ptr = <double*> matrix.data
-		cdef int i, j, k
-		cdef double contactCount
-
-		for i in range(n):
-			j = data_ptr[i] / resolution
-			k = data_ptr[n+i] / resolution
-			contactCount = data_ptr[2*n+i]
-
-			matrix_ptr[j*d + k] = contactCount
-			matrix_ptr[k*d + j] = contactCount
-
-		self.matrix = matrix
-
+		
 class FithicContactMap(object):
 	"""This represents a contact map which has been processed with Fit-Hi-C.
 
@@ -365,3 +348,43 @@ class FithicContactMap(object):
 		"""
 
 		return self.map[self.map[:, 4] <= Q_LOWER_BOUND, :2]
+
+	def to_matrix(self, statistic='count'):
+		"""Convert the map from column format to a 2d matrix.
+
+		Parameters
+		----------
+		statistic : str, one of 'count', 'p', 'q'
+			The statistic to save in each cell.
+
+		Returns
+		-------
+		matrix : numpy.array
+			A 2d matrix of the desired statistic.
+		"""
+
+		celltype = self.celltype
+		chromosome = self.chromosome
+		resolution = self.resolution
+		
+		KRnorm = numpy.loadtxt(KR_NORM.format(celltype, chromosome, resolution/1000))
+		d = KRnorm.shape[0] + 1
+
+		matrix = numpy.zeros((d, d))
+		
+		for mid1, mid2, contactCount, p, q in self.map:
+			mid1 = int((mid1 - resolution / 2) / resolution)
+			mid2 = int((mid2 - resolution / 2) / resolution)
+		
+			if statistic == 'count':
+				matrix[mid1, mid2] = contactCount
+			elif statistic == 'p':
+				matrix[mid1, mid2] = p
+			elif statistic == 'q':
+				matrix[mid1, mid2] = q
+			else:
+				raise ValueError
+
+		return matrix
+
+
