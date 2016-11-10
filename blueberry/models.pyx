@@ -60,7 +60,7 @@ class HistoneValidationGenerator(DataIter):
 
 	Use on only one chromosome for now."""
 
-	def __init__(self, sequence, dnase, histones, contacts, regions, window, batch_size=1024):
+	def __init__(self, sequence, dnase, histones, contacts, regions, window, batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, use_hist=True):
 		super(HistoneValidationGenerator, self).__init__()
 
 		self.sequence    = sequence
@@ -69,6 +69,10 @@ class HistoneValidationGenerator(DataIter):
 		self.histones    = histones
 		self.poscontacts = contacts_to_hashmap(contacts)
 		self.regions     = regions
+		self.use_seq     = use_seq
+		self.use_dnase   = use_dnase
+		self.use_dist    = use_dist
+		self.use_hist    = use_hist
 
 		self.window = window
 		self.batch_size = batch_size
@@ -126,23 +130,27 @@ class HistoneValidationGenerator(DataIter):
 
 				labels['softmax_label'][i] = (i+1)%2
 
-				data['x1seq'][i] = sequence[mid1-width:mid1+width]
-				data['x2seq'][i] = sequence[mid2-width:mid2+width]
+				if self.use_seq:
+					data['x1seq'][i] = sequence[mid1-width:mid1+width]
+					data['x2seq'][i] = sequence[mid2-width:mid2+width]
 
-				data['x1dnase'][i] = dnase[mid1-width:mid1+width]
-				data['x2dnase'][i] = dnase[mid2-width:mid2+width]
+				if self.use_dnase:
+					data['x1dnase'][i] = dnase[mid1-width:mid1+width]
+					data['x2dnase'][i] = dnase[mid2-width:mid2+width]
 
-				distance = mid2 - mid1 - LOW_FITHIC_CUTOFF
-				for k in range(100):
-					data['distance'][i][k] = 1 if distance >= k*1000 else 0
-				for k in range(91):
-					data['distance'][i][k+100] = 1 if distance >= 100000 + k*10000 else 0
-				for k in range(91):
-					data['distance'][i][k+190] = 1 if distance >= 1000000 + k*100000 else 0
+				if self.use_hist:
+					for k in range(5):
+						data['x1hist'][i][18*k:18*(k+1)] = self.histones[k][(mid1 - width) / window]
+						data['x2hist'][i][18*k:18*(k+1)] = self.histones[k][(mid2 - width) / window]
 
-				for k in range(5):
-					data['x1hist'][i][18*k:18*(k+1)] = self.histones[k][(mid1 - width) / window]
-					data['x2hist'][i][18*k:18*(k+1)] = self.histones[k][(mid2 - width) / window]
+				if self.use_dist:
+					distance = mid2 - mid1 - LOW_FITHIC_CUTOFF
+					for k in range(100):
+						data['distance'][i][k] = 1 if distance >= k*1000 else 0
+					for k in range(91):
+						data['distance'][i][k+100] = 1 if distance >= 100000 + k*10000 else 0
+					for k in range(91):
+						data['distance'][i][k+190] = 1 if distance >= 1000000 + k*100000 else 0
 
 				i += 1
 
@@ -178,7 +186,7 @@ class HistoneTrainingGenerator(DataIter):
 	the size of data does not match batch_size. Roll over is intended
 	for training and can cause problems if used for prediction.
 	"""
-	def __init__(self, sequences, dnases, histones, contacts, regions, window, batch_size=1024):
+	def __init__(self, sequences, dnases, histones, contacts, regions, window, batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, use_hist=True):
 		super(HistoneTrainingGenerator, self).__init__()
 
 		self.sequence      = sequences
@@ -187,7 +195,11 @@ class HistoneTrainingGenerator(DataIter):
 		self.contacts      = contacts
 		self.contact_dict  = cross_chromosome_dict(contacts)
 		self.regions       = regions
-		self.n = len(sequences)
+		self.n             = len(sequences)
+		self.use_seq       = use_seq
+		self.use_dnase     = use_dnase
+		self.use_dist      = use_dist
+		self.use_hist      = use_hist
 
 		self.window = window
 		self.batch_size = batch_size
@@ -252,23 +264,27 @@ class HistoneTrainingGenerator(DataIter):
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
 				labels['softmax_label'][i] = (i+1)%2
 
-				data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
-				data['x2seq'][i] = sequence[c][mid2-width:mid2+width]
+				if self.use_seq:
+					data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
+					data['x2seq'][i] = sequence[c][mid2-width:mid2+width]
 
-				data['x1dnase'][i] = dnases[c][mid1-width:mid1+width]
-				data['x2dnase'][i] = dnases[c][mid2-width:mid2+width]
+				if self.use_dnase:
+					data['x1dnase'][i] = dnases[c][mid1-width:mid1+width]
+					data['x2dnase'][i] = dnases[c][mid2-width:mid2+width]
 
-				distance = mid2 - mid1 - LOW_FITHIC_CUTOFF
-				for k in range(100):
-					data['distance'][i][k] = 1 if distance >= k*1000 else 0
-				for k in range(91):
-					data['distance'][i][k+100] = 1 if distance >= 100000 + k*10000 else 0
-				for k in range(91):
-					data['distance'][i][k+190] = 1 if distance >= 1000000 + k*100000 else 0
+				if self.use_hist:
+					for k in range(5):
+						data['x1hist'][i][18*k:18*(k+1)] = self.histones[c][k][(mid1 - width) / window]
+						data['x2hist'][i][18*k:18*(k+1)] = self.histones[c][k][(mid2 - width) / window]
 
-				for k in range(5):
-					data['x1hist'][i][18*k:18*(k+1)] = self.histones[c][k][(mid1 - width) / window]
-					data['x2hist'][i][18*k:18*(k+1)] = self.histones[c][k][(mid2 - width) / window]
+				if self.use_dist:
+					distance = mid2 - mid1 - LOW_FITHIC_CUTOFF
+					for k in range(100):
+						data['distance'][i][k] = 1 if distance >= k*1000 else 0
+					for k in range(91):
+						data['distance'][i][k+100] = 1 if distance >= 100000 + k*10000 else 0
+					for k in range(91):
+						data['distance'][i][k+190] = 1 if distance >= 1000000 + k*100000 else 0
 
 				i += 1
 
@@ -731,33 +747,46 @@ def DNaseRambutan(**kwargs):
 
 def BoostedRambutan(**kwargs):
 	# DISTANCE MODEL
-	x = Variable(name="distance")
-	ip1 = Dense(x, 64)
-	ip2 = mx.symbol.FullyConnected(ip1, num_hidden=2)
-	yd = SoftmaxOutput(data=ip2, name='softmax2')
+	xd = Variable(name="distance")
+	xd = Dense(xd, 64)
+	xd = mx.symbol.FullyConnected(xd, num_hidden=1)
+	xd = mx.symbol.Activation(data=xd, act_type='sigmoid')
 
-	# MAIN MODEL
 	x1seq = Variable(name="x1seq")
 	x1dnase = Variable(name="x1dnase")
 	x1hist = Variable(name="x1hist")
+
+	x1seq = Convolution(x1seq, 48, (7, 4))
+	x1seq = Pooling(x1seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
+	x1seq = Convolution(x1seq, 48, (7, 1))
+	x1seq = Flatten(Pooling(x1seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
+
+	x1dnase = Flatten(Pooling(x1dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
+
+	x1 = Concat(x1seq, x1dnase, x1hist)
+	x1 = Dense(x1, 128)
 
 	x2seq = Variable(name="x2seq")
 	x2dnase = Variable(name="x2dnase")
 	x2hist = Variable(name="x2hist")
 
-	x1hist_ip1 = Dense(x1hist, 64)
-	x2hist_ip1 = Dense(x2hist, 64)
+	x2seq = Convolution(x2seq, 48, (7, 4))
+	x2seq = Pooling(x2seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
+	x2seq = Convolution(x2seq, 48, (7, 1))
+	x2seq = Flatten(Pooling(x2seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
-	x1 = Arm(x1seq, x1dnase)
-	x2 = Arm(x2seq, x2dnase)
-	x = Concat(x1, x2, x1hist_ip1, x2hist_ip1, ip2)
+	x2dnase = Flatten(Pooling(x2dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
 
-	ip1 = Dense(x, 512)
-	ip2 = Dense(ip1, 512)
-	ip3 = mx.symbol.FullyConnected(ip2, num_hidden=2)
-	yr = SoftmaxOutput( data=ip3, name='softmax' )
+	x2 = Concat(x2seq, x2dnase, x2hist)
+	x2 = Dense(x2, 128)
 
-	y = mx.symbol.Group([yd, yr])
+	xr = Concat(x1, x2)
+	xr = Dense(xr, 256)
+	xr = mx.symbol.FullyConnected(xr, num_hidden=1)
+	xr = mx.symbol.Activation(data=xr, act_type='sigmoid')
 
+	x = Concat(xr, xd)
+	x = mx.symbol.FullyConnected(x, num_hidden=2)
+	y = SoftmaxOutput(data=x, name='softmax')
 	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
