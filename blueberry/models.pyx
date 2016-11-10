@@ -478,12 +478,12 @@ def Rambutan(**kwargs):
 	x1hist_ip1 = Dense(x1hist, 64)
 	x2hist_ip1 = Dense(x2hist, 64)
 
-	x1 = Arm(x1seq, x1dnase, x1hist)
-	x2 = Arm(x2seq, x2dnase, x2hist)
+	x1 = Arm(x1seq, x1dnase)
+	x2 = Arm(x2seq, x2dnase)
 
 	xd = Variable(name="distance")
 	xd_ip1 = Dense(xd, 64)
-	x = Concat(x1, x2, xd_ip1)
+	x = Concat(x1, x2, xd_ip1, x1hist_ip1, x2hist_ip1)
 
 	ip1 = Dense(x, 512)
 	ip2 = Dense(ip1, 512)
