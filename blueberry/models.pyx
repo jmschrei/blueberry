@@ -479,7 +479,7 @@ def Rambutan(**kwargs):
 	x2hist_ip1 = Dense(x2hist, 64)
 
 	x1 = Arm(x1seq, x1dnase, x1hist)
-	x2 = Arm(x2seq, x2dnase, x1hist)
+	x2 = Arm(x2seq, x2dnase, x2hist)
 
 	xd = Variable(name="distance")
 	xd_ip1 = Dense(xd, 64)
