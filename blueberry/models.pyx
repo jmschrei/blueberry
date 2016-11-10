@@ -430,25 +430,24 @@ def Dense(x, num_hidden, act_type='relu'):
 	x = mx.symbol.Activation(data=x, act_type=act_type)
 	return x
 
-def Seq( seq ):
+def Seq(seq):
 	conv1 = Convolution( seq, 48, (7, 4), pad=(3, 0) )
 	pool1 = Pooling( conv1, kernel=(3, 1), stride=(3, 1), pool_type='max' )
 	conv2 = Convolution( pool1, 48, (7, 1), pad=(3, 0) )
 	pool2 = Pooling( conv2, kernel=(3, 1), stride=(3, 1), pool_type='max' )
 	return pool2
 
-def DNase( dnase ):
+def DNase(dnase):
 	pool1 = Pooling( dnase, kernel=(9, 1), stride=(9, 1), pool_type='avg' )
 	conv1 = Convolution( pool1, 12, (5, 8), pad=(2, 0) )
 	return conv1
 
-def Arm( seq, dnase, hist ):
-	x = Concat( Seq(seq), DNase(dnase) )
+def Arm(seq, dnase):
+	x = Concat(Seq(seq), DNase(dnase))
 
 	x = Convolution(x, 64, (1, 1))
 	x = Convolution(x, 64, (3, 1))
 	x = Flatten(Pooling(x, kernel=(100, 1), stride=(100, 1), pool_type='max' ))
-	x = Concat(x, hist)
 	x = Dense(x, 512)
 	return x
 
