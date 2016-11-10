@@ -23,7 +23,8 @@ from .datatypes import *
 Q_LOWER_BOUND = 0.01
 Q_UPPER_BOUND = 0.50
 HIGH_FITHIC_CUTOFF = 10000000
-LOW_FITHIC_CUTOFF =  25000
+LOW_FITHIC_CUTOFF = 25000
+LOW_FITHIC_CUTOFF = 50000
 DATA_DIR = "/net/noble/vol1/home/jmschr/proj/contact/data"
 DATA = lambda name: DATA_DIR + "/{}".format(name)
 
