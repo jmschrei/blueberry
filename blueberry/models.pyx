@@ -494,8 +494,8 @@ def Rambutan(**kwargs):
 
 def StackedRambutan(**kwargs):
 	# DISTANCE MODEL
-	xd = Variable(name="distance") * 0
-	xd = Dense(xd, 1, 'sigmoid')
+	xd = Variable(name="distance")
+	xd = Dense(xd, 1, 'sigmoid') * 0
 
 	x1seq = Variable(name="x1seq")
 	x1dnase = Variable(name="x1dnase")
