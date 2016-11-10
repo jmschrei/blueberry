@@ -527,11 +527,9 @@ def StackedRambutan(**kwargs):
 
 	xr = Concat(x1, x2)
 	xr = Dense(xr, 256)
+	xr = Concat(xr, xd)
 	xr = Dense(xr, 256)
-	xr = Dense(xr, 1, 'sigmoid')
-
-	x = Concat(xr, xd)
-	x = mx.symbol.FullyConnected(x, num_hidden=2)
+	x = mx.symbol.FullyConnected(xr, num_hidden=2)
 	y = SoftmaxOutput(data=x, name='softmax')
 	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
