@@ -529,7 +529,7 @@ def StackedRambutan(**kwargs):
 	xr = Concat(x1, x2)
 	xr = Dense(xr, 256)
 	xr = Dense(xr, 256)
-	xr = Densr(xr, 1, 'sigmoid')
+	xr = Dense(xr, 1, 'sigmoid')
 
 	x = Concat(xr, xd)
 	x = mx.symbol.FullyConnected(x, num_hidden=2)
