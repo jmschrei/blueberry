@@ -501,9 +501,9 @@ def StackedRambutan(**kwargs):
 	x1dnase = Variable(name="x1dnase")
 	x1hist = Variable(name="x1hist")
 
-	x1seq = Convolution(x1seq, 48, (7, 4))
+	x1seq = Convolution(x1seq, 128, (7, 4))
 	x1seq = Pooling(x1seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
-	x1seq = Convolution(x1seq, 48, (7, 1))
+	x1seq = Convolution(x1seq, 128, (7, 1))
 	x1seq = Flatten(Pooling(x1seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
 	x1dnase = Flatten(Pooling(x1dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
