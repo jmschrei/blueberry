@@ -745,7 +745,7 @@ def DNaseRambutan(**kwargs):
 	model = mx.model.FeedForward( symbol=y, **kwargs )
 	return model
 
-def BoostedRambutan(**kwargs):
+def StackedRambutan(**kwargs):
 	# DISTANCE MODEL
 	xd = Variable(name="distance")
 	xd = Dense(xd, 64)
