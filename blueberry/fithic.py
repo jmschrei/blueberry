@@ -277,7 +277,7 @@ def	read_interactions(mainDic, infile, min_dist, max_dist):
 	data = pandas.read_csv(infile, header=None, names=['chr1', 'mid1', 'chr2', 'mid2', 'contactCount'], sep='\t')
 
 	for i, chr1, mid1, chr2, mid2, contactCount in data.itertuples():
-		distance = mid2 - mid1
+		distance = int(mid2) - int(mid1)
 
 		if chr1 != chr2:
 			observedInterAllSum += contactCount
