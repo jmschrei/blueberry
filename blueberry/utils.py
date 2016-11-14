@@ -24,7 +24,6 @@ Q_LOWER_BOUND = 0.01
 Q_UPPER_BOUND = 0.50
 HIGH_FITHIC_CUTOFF = 10000000
 LOW_FITHIC_CUTOFF = 25000
-LOW_FITHIC_CUTOFF = 50000
 DATA_DIR = "/net/noble/vol1/home/jmschr/proj/contact/data"
 DATA = lambda name: DATA_DIR + "/{}".format(name)
 
@@ -145,7 +144,7 @@ def balanced_random_sample( regions, contacts ):
 
 	return coordinates, y
 
-def plot_roc_pr(y_true, y_pred, labels):
+def plot_roc_pr(y_true, y_pred, labels, styles=None):
 	"""Plot a ROC and PR curve on the same plot.
 
 	Parameters
@@ -161,7 +160,7 @@ def plot_roc_pr(y_true, y_pred, labels):
 	None
 	"""
 
-	colors = 'cmrbgky'
+	colors = styles or 'cmrbgky'
 	plt.figure( figsize=(16, 6) )
 
 	for c, yp, label in zip(colors, y_pred, labels):
@@ -172,7 +171,7 @@ def plot_roc_pr(y_true, y_pred, labels):
 		plt.title("ROC", fontsize=16)
 		plt.xlabel("FPR", fontsize=14)
 		plt.ylabel("TPR", fontsize=14)
-		plt.plot(fpr, tpr, c=c, label="{}: {}".format(label, eval_auc))
+		plt.plot(fpr, tpr, c, label="{}: {}".format(label, eval_auc))
 
 		precision, recall, _ = precision_recall_curve(y_true, yp)
 		eval_auc = numpy.around(average_precision_score(y_true, yp), 4)
@@ -181,7 +180,7 @@ def plot_roc_pr(y_true, y_pred, labels):
 		plt.title("Precision-Recall", fontsize=16)
 		plt.xlabel("Recall", fontsize=14)
 		plt.ylabel("Precision", fontsize=14)
-		plt.plot(recall, precision, c=c, label="{}: {}".format(label, eval_auc))
+		plt.plot(recall, precision, c, label="{}: {}".format(label, eval_auc))
 		plt.ylim(0.0, 1.0)
 
 	plt.subplot(121)
