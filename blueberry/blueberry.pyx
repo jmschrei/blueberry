@@ -123,6 +123,7 @@ cpdef dict contacts_to_hashmap( numpy.ndarray contacts ):
 
 cpdef dict region_dict(numpy.ndarray regions, min_dist, max_dist):
 	cdef int i, j, n = regions.shape[0]
+	cdef double x, y
 	cdef int region_dict = {}
 
 	for i in range(n):
