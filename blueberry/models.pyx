@@ -65,18 +65,19 @@ class ValidationGenerator(DataIter):
 		use_hist=True, min_dist=25000, max_dist=10000000):
 		super(ValidationGenerator, self).__init__()
 
-		self.sequence    = sequence
-		self.dnase       = dnase
-		self.contacts    = contacts
-		self.histones    = histones
-		self.poscontacts = contacts_to_hashmap(contacts)
-		self.regions     = regions
-		self.use_seq     = use_seq
-		self.use_dnase   = use_dnase
-		self.use_dist    = use_dist
-		self.use_hist    = use_hist
-		self.min_dist    = min_dist
-		self.max_dist    = max_dist
+		self.sequence     = sequence
+		self.dnase        = dnase
+		self.contacts     = contacts
+		self.histones     = histones
+		self.contact_dict = contacts_to_hashmap(contacts)
+		self.regions      = regions
+		self.use_seq      = use_seq
+		self.use_dnase    = use_dnase
+		self.use_dist     = use_dist
+		self.use_hist     = use_hist
+		self.min_dist     = min_dist
+		self.max_dist     = max_dist
+		self.negative_map = region_dict(regions, min_dist, max_dist)
 
 		self.window = window
 		self.batch_size = batch_size
@@ -131,8 +132,9 @@ class ValidationGenerator(DataIter):
 						continue
 
 				else:
-					mid1, mid2 = negative_coordinate_pair(self.regions, 
-						self.poscontacts, self.min_dist, self.max_dist)
+					mid1 = numpy.random.choice(regions)
+					mid2 = numpy.random.choice(self.negative_map[mid1])
+
 
 				labels['softmax_label'][i] = (i+1)%2
 
@@ -210,7 +212,7 @@ class TrainingGenerator(DataIter):
 		self.use_hist     = use_hist
 		self.min_dist     = min_dist
 		self.max_dist     = max_dist
-		self.negative_map = [{region1: [region2 for region2 in regions[c] if min_dist <= region2 - region1 <= max_dist] for region1 in regions[c]} for c in range(len(regions))]
+		self.negative_map = [region_dict(r, min_dist, max_dist) for  in regions]
 
 		self.window = window
 		self.batch_size = batch_size

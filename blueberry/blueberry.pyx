@@ -121,6 +121,23 @@ cpdef dict contacts_to_hashmap( numpy.ndarray contacts ):
 
 	return contact_map
 
+cpdef dict region_dict(numpy.ndarray regions, min_dist, max_dist):
+	cdef int i, j, n = regions.shape[0]
+	cdef int region_dict = {}
+
+	for i in range(n):
+		x = regions[i]
+		region_dict[x] = []
+
+		for j in range(i, n):
+			y = regions[j]
+
+			if min_dist <= y - x <= max_dist:
+				region_dict[x].append(y)
+
+	return region_dict
+
+
 cpdef dict contacts_to_qhashmap( numpy.ndarray contacts ):
 	"""Take in pairs of contacts and build a hashmap of tuples for fast lookup."""
 
