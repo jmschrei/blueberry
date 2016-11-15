@@ -55,12 +55,14 @@ def cross_chromosome_dict(contacts):
 
 	return d
 
-class HistoneValidationGenerator(DataIter):
+class ValidationGenerator(DataIter):
 	"""Generator iterator, collects batches from a generator showing a full subset.
 
 	Use on only one chromosome for now."""
 
-	def __init__(self, sequence, dnase, histones, contacts, regions, window, batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, use_hist=True):
+	def __init__(self, sequence, dnase, histones, contacts, regions, window, 
+		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
+		use_hist=True, min_dist=25000, max_dist=10000000):
 		super(HistoneValidationGenerator, self).__init__()
 
 		self.sequence    = sequence
@@ -167,7 +169,7 @@ class HistoneValidationGenerator(DataIter):
 		pass
 
 
-class HistoneTrainingGenerator(DataIter):
+class TrainingGenerator(DataIter):
 	"""Generator iterator, collects batches from a generator.
 
 	Parameters
@@ -186,7 +188,9 @@ class HistoneTrainingGenerator(DataIter):
 	the size of data does not match batch_size. Roll over is intended
 	for training and can cause problems if used for prediction.
 	"""
-	def __init__(self, sequences, dnases, histones, contacts, regions, window, batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, use_hist=True):
+	def __init__(self, sequences, dnases, histones, contacts, regions, window, 
+		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
+		use_hist=True, min_dist=25000, max_dist=10000000):
 		super(HistoneTrainingGenerator, self).__init__()
 
 		self.sequence      = sequences
