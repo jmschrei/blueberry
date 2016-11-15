@@ -448,9 +448,9 @@ def Dense(x, num_hidden, act_type='relu'):
 	return x
 
 def Seq(seq):
-	conv1 = Convolution( seq, 48, (7, 4), pad=(3, 0) )
+	conv1 = Convolution( seq, 96, (7, 4), pad=(3, 0) )
 	pool1 = Pooling( conv1, kernel=(3, 1), stride=(3, 1), pool_type='max' )
-	conv2 = Convolution( pool1, 48, (7, 1), pad=(3, 0) )
+	conv2 = Convolution( pool1, 96, (7, 1), pad=(3, 0) )
 	pool2 = Pooling( conv2, kernel=(3, 1), stride=(3, 1), pool_type='max' )
 	return pool2
 
