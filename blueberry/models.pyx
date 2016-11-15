@@ -75,6 +75,8 @@ class ValidationGenerator(DataIter):
 		self.use_dnase   = use_dnase
 		self.use_dist    = use_dist
 		self.use_hist    = use_hist
+		self.min_dist      = min_dist
+		self.max_dist      = max_dist
 
 		self.window = window
 		self.batch_size = batch_size
@@ -124,7 +126,7 @@ class ValidationGenerator(DataIter):
 				if i % 2 == 0:
 					mid1, mid2 = self.contacts[j]
 					j += 1
-					if not (LOW_FITHIC_CUTOFF <= mid2 - mid1 <= HIGH_FITHIC_CUTOFF):
+					if not (self.min_dist <= mid2 - mid1 <= self.max_dist):
 						continue
 
 				else:
@@ -146,7 +148,7 @@ class ValidationGenerator(DataIter):
 						data['x2hist'][i][18*k:18*(k+1)] = self.histones[k][(mid2 - width) / window]
 
 				if self.use_dist:
-					distance = mid2 - mid1 - LOW_FITHIC_CUTOFF
+					distance = mid2 - mid1 - self.min_dist
 					for k in range(100):
 						data['distance'][i][k] = 1 if distance >= k*1000 else 0
 					for k in range(91):
@@ -204,6 +206,8 @@ class TrainingGenerator(DataIter):
 		self.use_dnase     = use_dnase
 		self.use_dist      = use_dist
 		self.use_hist      = use_hist
+		self.min_dist      = min_dist
+		self.max_dist      = max_dist
 
 		self.window = window
 		self.batch_size = batch_size
@@ -254,7 +258,7 @@ class TrainingGenerator(DataIter):
 				if i % 2 == 0:
 					k = numpy.random.randint(len(contacts))
 					c, mid1, mid2 = contacts[k, :3]
-					if not (LOW_FITHIC_CUTOFF <= mid2 - mid1 <= HIGH_FITHIC_CUTOFF):
+					if not (self.min_dist <= mid2 - mid1 <= self.max_dist):
 						continue
 
 				else:
@@ -282,7 +286,7 @@ class TrainingGenerator(DataIter):
 						data['x2hist'][i][18*k:18*(k+1)] = self.histones[c][k][(mid2 - width) / window]
 
 				if self.use_dist:
-					distance = mid2 - mid1 - LOW_FITHIC_CUTOFF
+					distance = mid2 - mid1 - self.min_dist
 					for k in range(100):
 						data['distance'][i][k] = 1 if distance >= k*1000 else 0
 					for k in range(91):
