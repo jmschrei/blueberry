@@ -63,7 +63,7 @@ class ValidationGenerator(DataIter):
 	def __init__(self, sequence, dnase, histones, contacts, regions, window, 
 		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
 		use_hist=True, min_dist=25000, max_dist=10000000):
-		super(HistoneValidationGenerator, self).__init__()
+		super(ValidationGenerator, self).__init__()
 
 		self.sequence    = sequence
 		self.dnase       = dnase
@@ -191,7 +191,7 @@ class TrainingGenerator(DataIter):
 	def __init__(self, sequences, dnases, histones, contacts, regions, window, 
 		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
 		use_hist=True, min_dist=25000, max_dist=10000000):
-		super(HistoneTrainingGenerator, self).__init__()
+		super(TrainingGenerator, self).__init__()
 
 		self.sequence      = sequences
 		self.dnases        = dnases
