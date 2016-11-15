@@ -135,7 +135,7 @@ class ValidationGenerator(DataIter):
 					while True:
 						mid1 = numpy.random.choice(self.regions)
 						mid2 = mid1 + numpy.random.choice(region_range)  
-						if mid2 <= regions[c][-1] and not contact_dict.has_key((c, mid1, mid2)):
+						if mid2 <= self.regions[-1]:
 							break
 
 
