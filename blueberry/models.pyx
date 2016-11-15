@@ -212,7 +212,7 @@ class TrainingGenerator(DataIter):
 		self.use_hist     = use_hist
 		self.min_dist     = min_dist
 		self.max_dist     = max_dist
-		self.negative_map = [region_dict(r, min_dist, max_dist) for  in regions]
+		self.negative_map = [region_dict(r, min_dist, max_dist) for r in regions]
 
 		self.window = window
 		self.batch_size = batch_size
