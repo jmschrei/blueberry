@@ -77,7 +77,6 @@ class ValidationGenerator(DataIter):
 		self.use_hist     = use_hist
 		self.min_dist     = min_dist
 		self.max_dist     = max_dist
-		self.negative_map = region_dict(regions, min_dist, max_dist)
 
 		self.window = window
 		self.batch_size = batch_size
@@ -104,6 +103,7 @@ class ValidationGenerator(DataIter):
 		cdef int mid1, mid2, distance, width=window/2
 		cdef list data_list, label_list
 		cdef str key
+		cdef list region_range = range(self.min_dist, self.max_dist+window, window)
 
 		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
@@ -132,8 +132,11 @@ class ValidationGenerator(DataIter):
 						continue
 
 				else:
-					mid1 = numpy.random.choice(regions)
-					mid2 = numpy.random.choice(self.negative_map[mid1])
+					while True:
+						mid1 = numpy.random.choice(regions[c])
+						mid2 = mid1 + numpy.random.choice(region_range)  
+						if mid2 <= regions[c][-1] and not contact_dict.has_key((c, mid1, mid2)):
+							break
 
 
 				labels['softmax_label'][i] = (i+1)%2
@@ -240,7 +243,7 @@ class TrainingGenerator(DataIter):
 		cdef int i, c, k, mid1, mid2, distance, width = window/2
 		cdef dict data, labels, contact_dict = self.contact_dict
 		cdef list data_list, label_list
-		cdef int region_range = range(self.min_dist, self.max_dist+window, window)
+		cdef list region_range = range(self.min_dist, self.max_dist+window, window)
 
 		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
