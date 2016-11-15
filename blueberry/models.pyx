@@ -75,8 +75,8 @@ class ValidationGenerator(DataIter):
 		self.use_dnase   = use_dnase
 		self.use_dist    = use_dist
 		self.use_hist    = use_hist
-		self.min_dist      = min_dist
-		self.max_dist      = max_dist
+		self.min_dist    = min_dist
+		self.max_dist    = max_dist
 
 		self.window = window
 		self.batch_size = batch_size
@@ -131,7 +131,8 @@ class ValidationGenerator(DataIter):
 						continue
 
 				else:
-					mid1, mid2 = negative_coordinate_pair(self.regions, self.poscontacts)
+					mid1, mid2 = negative_coordinate_pair(self.regions, 
+						self.poscontacts, self.min_dist, self.max_dist)
 
 				labels['softmax_label'][i] = (i+1)%2
 
@@ -196,19 +197,19 @@ class TrainingGenerator(DataIter):
 		use_hist=True, min_dist=25000, max_dist=10000000):
 		super(TrainingGenerator, self).__init__()
 
-		self.sequence      = sequences
-		self.dnases        = dnases
-		self.histones      = histones
-		self.contacts      = contacts
-		self.contact_dict  = cross_chromosome_dict(contacts)
-		self.regions       = regions
-		self.n             = len(sequences)
-		self.use_seq       = use_seq
-		self.use_dnase     = use_dnase
-		self.use_dist      = use_dist
-		self.use_hist      = use_hist
-		self.min_dist      = min_dist
-		self.max_dist      = max_dist
+		self.sequence     = sequences
+		self.dnases       = dnases
+		self.histones     = histones
+		self.contacts     = contacts
+		self.contact_dict = cross_chromosome_dict(contacts)
+		self.regions      = regions
+		self.n            = len(sequences)
+		self.use_seq      = use_seq
+		self.use_dnase    = use_dnase
+		self.use_dist     = use_dist
+		self.use_hist     = use_hist
+		self.min_dist     = min_dist
+		self.max_dist     = max_dist
 
 		self.window = window
 		self.batch_size = batch_size
@@ -267,7 +268,7 @@ class TrainingGenerator(DataIter):
 
 					while True:
 						mid1, mid2 = numpy.random.choice(regions[c], 2)
-						if not contact_dict.has_key((c, mid1, mid2)):
+						if not contact_dict.has_key((c, mid1, mid2)) and self.min_dist <= mid2 - mid1 <= self.max_dist:
 							break
 
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)

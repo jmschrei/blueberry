@@ -89,7 +89,7 @@ def extract_contacts(celltype, chromosome, resolution, alpha=None, n_regions=Non
 	else:
 		return contact
 
-def negative_coordinate_pair( regions, contacts ):
+def negative_coordinate_pair(regions, contacts, min_dist=25000, max_dist=10000000):
 	"""Returns a valid coordinate.
 	Parameters
 	----------
@@ -107,7 +107,7 @@ def negative_coordinate_pair( regions, contacts ):
 		mid1, mid2 = numpy.random.choice(regions, 2)
 		mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
 
-		if not (LOW_FITHIC_CUTOFF <= mid2 - mid1 <= HIGH_FITHIC_CUTOFF):
+		if not (min_dist <= mid2 - mid1 <= max_dist):
 			continue
 
 		if contacts.has_key( (mid1, mid2) ):
