@@ -210,6 +210,7 @@ class TrainingGenerator(DataIter):
 		self.use_hist     = use_hist
 		self.min_dist     = min_dist
 		self.max_dist     = max_dist
+		self.negative_map = [{region1: [region2 for region2 in regions[c] if min_dist <= region2 - region1 <= max_dist] for region1 in regions[c]} for c in range(len(regions))]
 
 		self.window = window
 		self.batch_size = batch_size
@@ -240,6 +241,7 @@ class TrainingGenerator(DataIter):
 		cdef list data_list, label_list
 		cdef int min_dist_idx = self.min_dist / window
 		cdef int max_dist_idx = self.max_dist / window
+		cdef int mid1i, mid2i
 
 		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
@@ -270,8 +272,8 @@ class TrainingGenerator(DataIter):
 
 					while True:
 						mid1 = numpy.random.choice(regions[c])
-						mid2 = numpy.random.choice(regions[(mid1 - distance <= self.max_dist) & (mid1 - distance >= self.min_dist)])
-						if not contact_dict.has_key((c, mid1, mid2)) and self.min_dist <= mid2 - mid1 <= self.max_dist:
+						mid2 = numpy.random.choice(self.negative_map[c][mid1])
+						if not contact_dict.has_key((c, mid1, mid2)):
 							break
 
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
