@@ -99,7 +99,7 @@ class ValidationGenerator(DataIter):
 		cdef numpy.ndarray dnase = self.dnase
 		cdef numpy.ndarray histones = self.histones
 		cdef dict data, labels
-		cdef int i, j = 0, k, batch_size = self.batch_size, window = self.window
+		cdef int i, j = 0, k, batch_size = self.batch_size, window = self.window, l
 		cdef int mid1, mid2, distance, width=window/2
 		cdef list data_list, label_list
 		cdef str key
@@ -115,7 +115,8 @@ class ValidationGenerator(DataIter):
 		labels = { 'softmax_label' : numpy.zeros(batch_size) }
 
 		j = 0
-		while j < self.contacts.shape[0] - batch_size*2:
+		l = self.contacts.shape[0] - batch_size*2
+		while j < l:
 			data['x1seq'] = data['x1seq'].reshape(batch_size, window, 4)
 			data['x2seq'] = data['x2seq'].reshape(batch_size, window, 4)
 			data['x1dnase'] = data['x1dnase'].reshape(batch_size, window, 8)
@@ -126,7 +127,7 @@ class ValidationGenerator(DataIter):
 				if i % 2 == 0:
 					mid1, mid2 = self.contacts[j]
 					j += 1
-					if not (self.min_dist <= mid2 - mid1 <= self.max_dist):
+					if not (self.min_dist <= mid2 - mid1 <= self.max_dist) and j < l:
 						continue
 
 				else:
