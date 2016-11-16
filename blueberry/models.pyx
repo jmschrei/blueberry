@@ -518,7 +518,7 @@ def NewRambutan(**kwargs):
 	x1seq = Convolution(x1seq, 48, (7, 1))
 	x1seq = Flatten(Pooling(x1seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
-	x1chrom = Flatten(Pooling(x1dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
+	x1chrom = Flatten(Pooling(x1dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='avg'))
 	x1chrom = Concat(x1chrom, x1hist)
 	x1chrom = Dense(x1chrom, 64)
 
@@ -534,7 +534,7 @@ def NewRambutan(**kwargs):
 	x2seq = Convolution(x2seq, 48, (7, 1))
 	x2seq = Flatten(Pooling(x2seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
-	x2chrom = Flatten(Pooling(x2dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
+	x2chrom = Flatten(Pooling(x2dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='avg'))
 	x2chrom = Concat(x2chrom, x2hist)
 	x2chrom = Dense(x2chrom, 64)
 
