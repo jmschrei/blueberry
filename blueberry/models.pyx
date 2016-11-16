@@ -513,9 +513,9 @@ def NewRambutan(**kwargs):
 	x1dnase = Variable(name="x1dnase")
 	x1hist = Variable(name="x1hist")
 
-	x1seq = Convolution(x1seq, 128, (7, 4))
+	x1seq = Convolution(x1seq, 64, (7, 4))
 	x1seq = Pooling(x1seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
-	x1seq = Convolution(x1seq, 128, (7, 1))
+	x1seq = Convolution(x1seq, 64, (7, 1))
 	x1seq = Flatten(Pooling(x1seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
 	x1dnase = Flatten(Pooling(x1dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
@@ -527,9 +527,9 @@ def NewRambutan(**kwargs):
 	x2dnase = Variable(name="x2dnase")
 	x2hist = Variable(name="x2hist")
 
-	x2seq = Convolution(x2seq, 128, (7, 4))
+	x2seq = Convolution(x2seq, 64, (7, 4))
 	x2seq = Pooling(x2seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
-	x2seq = Convolution(x2seq, 128, (7, 1))
+	x2seq = Convolution(x2seq, 64, (7, 1))
 	x2seq = Flatten(Pooling(x2seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
 	x2dnase = Flatten(Pooling(x2dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
