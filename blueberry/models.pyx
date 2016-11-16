@@ -508,11 +508,7 @@ def Rambutan(**kwargs):
 	model = mx.model.FeedForward( symbol=softmax, **kwargs )
 	return model
 
-def StackedRambutan(**kwargs):
-	# DISTANCE MODEL
-	xd = Variable(name="distance")
-	xd = Dense(xd, 1, 'sigmoid') * 0
-
+def NewRambutan(**kwargs):
 	x1seq = Variable(name="x1seq")
 	x1dnase = Variable(name="x1dnase")
 	x1hist = Variable(name="x1hist")
@@ -538,14 +534,16 @@ def StackedRambutan(**kwargs):
 
 	x2dnase = Flatten(Pooling(x2dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
 
-	x2 = Concat(x2seq, x2dnase, x2hist)
+	xd = Variable(name="distance")
+	xd = Dense(xd, 64)
+
+	x2 = Concat(x2seq, x2dnase, x2hist, xd)
 	x2 = Dense(x2, 256)
 
-	xr = Concat(x1, x2)
-	xr = Dense(xr, 256)
-	xr = Concat(xr, xd)
-	xr = Dense(xr, 256)
-	x = mx.symbol.FullyConnected(xr, num_hidden=2)
+	x = Concat(x1, x2)
+	x = Dense(x, 256)
+	x = Dense(x, 256)
+	x = mx.symbol.FullyConnected(x, num_hidden=2)
 	y = SoftmaxOutput(data=x, name='softmax')
 	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
