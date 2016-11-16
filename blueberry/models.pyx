@@ -520,10 +520,10 @@ def NewRambutan(**kwargs):
 
 	x1chrom = Flatten(Pooling(x1dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='avg'))
 	x1chrom = Concat(x1chrom, x1hist)
-	x1chrom = Dense(x1chrom, 64)
+	x1chrom = Dense(x1chrom, 96)
 
 	x1 = Concat(x1seq, x1chrom)
-	x1 = Dense(x1, 128)
+	x1 = Dense(x1, 256)
 
 	x2seq = Variable(name="x2seq")
 	x2dnase = Variable(name="x2dnase")
@@ -536,17 +536,17 @@ def NewRambutan(**kwargs):
 
 	x2chrom = Flatten(Pooling(x2dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='avg'))
 	x2chrom = Concat(x2chrom, x2hist)
-	x2chrom = Dense(x2chrom, 64)
+	x2chrom = Dense(x2chrom, 86)
 
 	x2 = Concat(x2seq, x2chrom)
-	x2 = Dense(x2, 128)
+	x2 = Dense(x2, 256)
 
 	xd = Variable(name="distance")
 	xd = Dense(xd, 64)
 
 	x = Concat(x1, x2, xd)
-	x = Dense(x, 128)
-	x = Dense(x, 128)
+	x = Dense(x, 512)
+	x = Dense(x, 256)
 	x = mx.symbol.FullyConnected(x, num_hidden=2)
 	y = SoftmaxOutput(data=x, name='softmax')
 	model = mx.model.FeedForward(symbol=y, **kwargs)
