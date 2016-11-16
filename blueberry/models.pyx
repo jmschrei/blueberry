@@ -513,37 +513,40 @@ def NewRambutan(**kwargs):
 	x1dnase = Variable(name="x1dnase")
 	x1hist = Variable(name="x1hist")
 
-	x1seq = Convolution(x1seq, 64, (7, 4))
+	x1seq = Convolution(x1seq, 48, (7, 4))
 	x1seq = Pooling(x1seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
-	x1seq = Convolution(x1seq, 64, (7, 1))
+	x1seq = Convolution(x1seq, 48, (7, 1))
 	x1seq = Flatten(Pooling(x1seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
-	x1dnase = Flatten(Pooling(x1dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
+	x1chrom = Flatten(Pooling(x1dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
+	x1chrom = Concat(x1chrom, x1hist)
+	x1chrom = Dense(x1chrom, 64)
 
-	x1 = Concat(x1seq, x1dnase, x1hist)
-	x1 = Dense(x1, 256)
+	x1 = Concat(x1seq, x1chrom)
+	x1 = Dense(x1, 128)
 
 	x2seq = Variable(name="x2seq")
 	x2dnase = Variable(name="x2dnase")
 	x2hist = Variable(name="x2hist")
 
-	x2seq = Convolution(x2seq, 64, (7, 4))
+	x2seq = Convolution(x2seq, 48, (7, 4))
 	x2seq = Pooling(x2seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
-	x2seq = Convolution(x2seq, 64, (7, 1))
+	x2seq = Convolution(x2seq, 48, (7, 1))
 	x2seq = Flatten(Pooling(x2seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
-	x2dnase = Flatten(Pooling(x2dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
+	x2chrom = Flatten(Pooling(x2dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='max'))
+	x2chrom = Concat(x2chrom, x2hist)
+	x2chrom = Dense(x2chrom, 64)
+
+	x2 = Concat(x2seq, x2chrom)
+	x2 = Dense(x2, 128)
 
 	xd = Variable(name="distance")
 	xd = Dense(xd, 64)
 
-	x2 = Concat(x2seq, x2dnase, x2hist)
-	x2 = Dense(x2, 256)
-
-	x = Concat(x1, x2)
-	x = Dense(x, 256)
-	x = Concat(x, xd)
-	x = Dense(x, 256)
+	x = Concat(x1, x2, xd)
+	x = Dense(x, 128)
+	x = Dense(x, 128)
 	x = mx.symbol.FullyConnected(x, num_hidden=2)
 	y = SoftmaxOutput(data=x, name='softmax')
 	model = mx.model.FeedForward(symbol=y, **kwargs)
