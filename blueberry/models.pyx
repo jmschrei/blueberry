@@ -111,9 +111,13 @@ class ValidationGenerator(DataIter):
 				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
 				 'x1hist' : numpy.zeros((batch_size, 90)),
 				 'x2hist' : numpy.zeros((batch_size, 90)),
-				 'distance' : numpy.zeros((batch_size, 281)) }
+				 'distance' : numpy.zeros((batch_size, 281)) 
+		}
 
-		labels = { 'softmax_label' : numpy.zeros(batch_size) }
+		labels = { 'softmax_short_label' : numpy.zeros(batch_size) - 1,
+				   'softmax_mid_label' : numpy.zeros(batch_size) - 1,
+				   'softmax_long_label' : numpy.zeros(batch_size) - 1 
+		}
 
 		j = 0
 		l = self.contacts.shape[0] - batch_size*2
@@ -138,8 +142,14 @@ class ValidationGenerator(DataIter):
 						if mid2 <= self.regions[-1]:
 							break
 
-
-				labels['softmax_label'][i] = (i+1)%2
+				if 25000 <= mid2 - mid1 <= 100000:
+					labels['softmax_short_label'][i] = (i+1)%2
+				elif 100000 <= mid2 - mid1 <= 1000000:
+					labels['softmax_mid_label'][i] = (i+1)%2
+				elif mid2 - mid1 >= 1000000:
+					labels['softmax_mid_label'][i] = (i+1)%2
+				else:
+					raise ValueError
 
 				if self.use_seq:
 					data['x1seq'][i] = sequence[mid1-width:mid1+width]
@@ -171,7 +181,7 @@ class ValidationGenerator(DataIter):
 			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 8)
 
 			data_list = [ array(data[key]) for key in self.data_shapes.keys() ]
-			label_list = [ array(labels['softmax_label']) ]
+			label_list = [ array(labels['softmax_short_label']), array(labels['softmax_mid_label']), array(labels['softmax_long_label']) ]
 			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
 
 	def reset(self):
@@ -253,7 +263,10 @@ class TrainingGenerator(DataIter):
 				 'x2hist' : numpy.zeros((batch_size, 90)),
 				 'distance' : numpy.zeros((batch_size, 281)) }
 
-		labels = { 'softmax_label' : numpy.zeros(batch_size) }
+		labels = { 'softmax_short_label' : numpy.zeros(batch_size) - 1,
+				   'softmax_mid_label' : numpy.zeros(batch_size) - 1,
+				   'softmax_long_label' : numpy.zeros(batch_size) - 1 
+		}
 
 		while True:
 			data['x1seq'] = data['x1seq'].reshape(batch_size, window, 4)
@@ -279,7 +292,15 @@ class TrainingGenerator(DataIter):
 							break
 
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
-				labels['softmax_label'][i] = (i+1)%2
+
+				if 25000 <= mid2 - mid1 <= 100000:
+					labels['softmax_short_label'][i] = (i+1)%2
+				elif 100000 <= mid2 - mid1 <= 1000000:
+					labels['softmax_mid_label'][i] = (i+1)%2
+				elif mid2 - mid1 >= 1000000:
+					labels['softmax_mid_label'][i] = (i+1)%2
+				else:
+					raise ValueError
 
 				if self.use_seq:
 					data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
@@ -311,13 +332,11 @@ class TrainingGenerator(DataIter):
 			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 8)
 
 			data_list = [ array(data[key]) for key in self.data_shapes.keys() ]
-			label_list = [ array(labels['softmax_label']) ]
+			label_list = [ array(labels['softmax_short_label']), array(labels['softmax_mid_label']), array(labels['softmax_long_label']) ]
 			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
 
 	def reset(self):
 		pass
-
-
 
 class MultiCellTypeGenerator(DataIter):
 	"""Generator iterator, collects batches from a generator showing a full subset."""
