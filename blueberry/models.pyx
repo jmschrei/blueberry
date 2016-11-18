@@ -89,7 +89,7 @@ class ValidationGenerator(DataIter):
 	@property
 	def provide_label(self):
 		"""The name and shape of label provided by this iterator"""
-		return [('softmax_label', (self.batch_size,))]
+		return [('softmax_short_label', (self.batch_size,)), ('softmax_mid_label', (self.batch_size,)), ('softmax_long_label', (self.batch_size,))]
 
 	def __iter__(self):
 		cdef numpy.ndarray sequence = self.sequence
@@ -226,7 +226,7 @@ class TrainingGenerator(DataIter):
 	@property
 	def provide_label(self):
 		"""The name and shape of label provided by this iterator"""
-		return [('softmax_label', (self.batch_size,))]
+		return [('softmax_short_label', (self.batch_size,)), ('softmax_mid_label', (self.batch_size,)), ('softmax_long_label', (self.batch_size,))]
 
 	def __iter__(self):
 		cdef numpy.ndarray sequence = self.sequence
