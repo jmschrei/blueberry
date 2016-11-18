@@ -459,7 +459,7 @@ def DNase(dnase):
 	conv1 = Convolution( pool1, 12, (5, 8), pad=(2, 0) )
 	return conv1
 
-def Arm(seq, dnase):
+def OldArm(seq, dnase):
 	x = Concat(Seq(seq), DNase(dnase))
 
 	x = Convolution(x, 64, (1, 1))
@@ -549,5 +549,46 @@ def Rambutan(**kwargs):
 	x = Dense(x, 256)
 	x = mx.symbol.FullyConnected(x, num_hidden=2)
 	y = SoftmaxOutput(data=x, name='softmax')
+	model = mx.model.FeedForward(symbol=y, **kwargs)
+	return model
+
+def Arm(seq, dnase):
+	seq = Convolution(seq, 48, (7, 4))
+	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
+	seq = Convolution(seq, 48, (7, 1))
+	seq = Flatten(Pooling(seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
+
+	dnase = Pooling(dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
+	dnase = Convolution(dnase, 12, (5, 8), pad=(2, 0))
+
+	x = Convolution(x, 64, (3, 1))
+	x = Flatten(Pooling(x, kernel=(111, 1), stride=(111, 1), pool_type='max' ))
+	x = Dense(x, 256)
+
+def Task(x1, x2, d, name):
+	xd = Dense(d, 32)
+	x = Concat(x1, x2)
+	x = Dense(x, 128)
+	x = Concat(x, xd)
+	x = Dense(x, 128)
+	y = SoftmaxOutput(data=x, name="softmax_{}".format(name), ignore_label=-1, use_ignore=True)
+	return y
+
+def MultiButan(**kwargs):
+	x1seq = Variable(name="x1seq")
+	x1dnase = Variable(name="x1dnase")
+	x1 = Arm(x1seq, x1dnase)
+
+	x2seq = Variable(name="x2seq")
+	x2dnase = Variable(name="x2dnase")
+	x2 = Arm(x2seq, x2seq)
+
+	xd = Variable(name="distance")
+
+	y1 = Task(x1, x2, xd, "short")
+	y2 = Task(x1, x2, xd, "mid")
+	y3 = Task(x1, x2, xd, "long")
+
+	y = mx.symbol.Group([y1, y2, y3])
 	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
