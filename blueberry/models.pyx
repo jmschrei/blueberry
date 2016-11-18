@@ -492,7 +492,7 @@ def Arm(seq, dnase):
 	seq = Convolution(seq, 48, (7, 4))
 	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
 	seq = Convolution(seq, 48, (7, 1))
-	seq = Flatten(Pooling(seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
+	seq = Flatten(Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max'))
 
 	dnase = Pooling(dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
 	dnase = Convolution(dnase, 12, (5, 8), pad=(2, 0))
