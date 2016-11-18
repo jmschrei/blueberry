@@ -216,8 +216,7 @@ class TrainingGenerator(DataIter):
 		self.window = window
 		self.batch_size = batch_size
 		self.data_shapes = {'x1seq' : (1, window, 4), 'x2seq' : (1, window, 4), 
-			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,),
-			'x1hist' : (90,), 'x2hist' : (90,)}
+			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,)}
 
 	@property
 	def provide_data(self):
