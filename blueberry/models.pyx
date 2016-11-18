@@ -572,6 +572,7 @@ def Task(x1, x2, d, name):
 	x = Dense(x, 128)
 	x = Concat(x, xd)
 	x = Dense(x, 128)
+	x = mx.symbol.FullyConnected(x, num_hidden=2)
 	y = SoftmaxOutput(data=x, name="softmax_{}".format(name), ignore_label=-1, use_ignore=True)
 	return y
 
@@ -590,6 +591,6 @@ def MultiButan(**kwargs):
 	y2 = Task(x1, x2, xd, "mid")
 	y3 = Task(x1, x2, xd, "long")
 
-	y = mx.symbol.Group([y1, y2, y3])
+	y = mx.symbol.Group(y1, y2, y3)
 	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
