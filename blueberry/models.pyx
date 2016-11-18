@@ -196,7 +196,7 @@ class TrainingGenerator(DataIter):
 	the size of data does not match batch_size. Roll over is intended
 	for training and can cause problems if used for prediction.
 	"""
-	def __init__(self, sequences, dnases, histones, contacts, regions, window, 
+	def __init__(self, sequences, dnases, contacts, regions, window, 
 		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
 		use_hist=True, min_dist=25000, max_dist=10000000):
 		super(TrainingGenerator, self).__init__()
