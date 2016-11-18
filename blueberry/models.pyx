@@ -591,6 +591,6 @@ def MultiButan(**kwargs):
 	y2 = Task(x1, x2, xd, "mid")
 	y3 = Task(x1, x2, xd, "long")
 
-	y = mx.symbol.Group(y1, y2, y3)
+	y = mx.symbol.Group([y1, y2, y3])
 	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
