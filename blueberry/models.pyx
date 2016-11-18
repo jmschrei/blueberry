@@ -468,7 +468,7 @@ def Arm(seq, dnase):
 	x = Dense(x, 512)
 	return x
 
-def Rambutan(**kwargs):
+def Oldbutan(**kwargs):
 	"""Create the Rambutan model.
 
 	The current default values are the following:
@@ -508,7 +508,7 @@ def Rambutan(**kwargs):
 	model = mx.model.FeedForward( symbol=softmax, **kwargs )
 	return model
 
-def NewRambutan(**kwargs):
+def Rambutan(**kwargs):
 	x1seq = Variable(name="x1seq")
 	x1dnase = Variable(name="x1dnase")
 	x1hist = Variable(name="x1hist")
@@ -545,7 +545,7 @@ def NewRambutan(**kwargs):
 	xd = Dense(xd, 64)
 
 	x = Concat(x1, x2, xd)
-	x = Dense(x, 512)
+	x = Dense(x, 256)
 	x = Dense(x, 256)
 	x = mx.symbol.FullyConnected(x, num_hidden=2)
 	y = SoftmaxOutput(data=x, name='softmax')
