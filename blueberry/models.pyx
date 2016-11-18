@@ -520,7 +520,7 @@ def MultiButan(**kwargs):
 
 	x2seq = Variable(name="x2seq")
 	x2dnase = Variable(name="x2dnase")
-	x2 = Arm(x2seq, x2seq)
+	x2 = Arm(x2seq, x2dnase)
 
 	xd = Variable(name="distance")
 
