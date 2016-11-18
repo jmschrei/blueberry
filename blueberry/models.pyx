@@ -499,7 +499,7 @@ def Arm(seq, dnase):
 
 	x = Concat(seq, dnase)
 	x = Convolution(x, 64, (3, 1))
-	x = Flatten(Pooling(x, kernel=(111, 1), stride=(111, 1), pool_type='max' ))
+	x = Flatten(Pooling(x, kernel=(108, 1), stride=(108, 1), pool_type='max'))
 	x = Dense(x, 256)
 	return x
 
