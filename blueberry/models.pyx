@@ -60,29 +60,26 @@ class ValidationGenerator(DataIter):
 
 	Use on only one chromosome for now."""
 
-	def __init__(self, sequence, dnase, histones, contacts, regions, window, 
+	def __init__(self, sequence, dnase, contacts, regions, window, 
 		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
-		use_hist=True, min_dist=25000, max_dist=10000000):
+		min_dist=25000, max_dist=10000000):
 		super(ValidationGenerator, self).__init__()
 
 		self.sequence     = sequence
 		self.dnase        = dnase
 		self.contacts     = contacts
-		self.histones     = histones
 		self.contact_dict = contacts_to_hashmap(contacts)
 		self.regions      = regions
 		self.use_seq      = use_seq
 		self.use_dnase    = use_dnase
 		self.use_dist     = use_dist
-		self.use_hist     = use_hist
 		self.min_dist     = min_dist
 		self.max_dist     = max_dist
 
 		self.window = window
 		self.batch_size = batch_size
 		self.data_shapes = {'x1seq' : (1, window, 4), 'x2seq' : (1, window, 4), 
-			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,),
-			'x1hist' : (90,), 'x2hist' : (90,)}
+			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,)}
 
 	@property
 	def provide_data(self):
@@ -97,7 +94,6 @@ class ValidationGenerator(DataIter):
 	def __iter__(self):
 		cdef numpy.ndarray sequence = self.sequence
 		cdef numpy.ndarray dnase = self.dnase
-		cdef numpy.ndarray histones = self.histones
 		cdef dict data, labels
 		cdef int i, j = 0, k, batch_size = self.batch_size, window = self.window, l
 		cdef int mid1, mid2, distance, width=window/2
@@ -109,8 +105,6 @@ class ValidationGenerator(DataIter):
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
 				 'x1dnase' : numpy.zeros((batch_size, window, 8)),
 				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
-				 'x1hist' : numpy.zeros((batch_size, 90)),
-				 'x2hist' : numpy.zeros((batch_size, 90)),
 				 'distance' : numpy.zeros((batch_size, 281)) 
 		}
 
@@ -158,11 +152,6 @@ class ValidationGenerator(DataIter):
 				if self.use_dnase:
 					data['x1dnase'][i] = dnase[mid1-width:mid1+width]
 					data['x2dnase'][i] = dnase[mid2-width:mid2+width]
-
-				if self.use_hist:
-					for k in range(5):
-						data['x1hist'][i][18*k:18*(k+1)] = self.histones[k][(mid1 - width) / window]
-						data['x2hist'][i][18*k:18*(k+1)] = self.histones[k][(mid2 - width) / window]
 
 				if self.use_dist:
 					distance = mid2 - mid1 - self.min_dist
@@ -214,7 +203,6 @@ class TrainingGenerator(DataIter):
 
 		self.sequence     = sequences
 		self.dnases       = dnases
-		self.histones     = histones
 		self.contacts     = contacts
 		self.contact_dict = cross_chromosome_dict(contacts)
 		self.regions      = regions
@@ -222,7 +210,6 @@ class TrainingGenerator(DataIter):
 		self.use_seq      = use_seq
 		self.use_dnase    = use_dnase
 		self.use_dist     = use_dist
-		self.use_hist     = use_hist
 		self.min_dist     = min_dist
 		self.max_dist     = max_dist
 
@@ -245,7 +232,6 @@ class TrainingGenerator(DataIter):
 	def __iter__(self):
 		cdef numpy.ndarray sequence = self.sequence
 		cdef numpy.ndarray dnases = self.dnases
-		cdef numpy.ndarray histones = self.histones
 		cdef numpy.ndarray contacts = self.contacts
 		cdef numpy.ndarray regions = self.regions
 		cdef numpy.ndarray x1dnase, x2dnase
@@ -259,8 +245,6 @@ class TrainingGenerator(DataIter):
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
 				 'x1dnase' : numpy.zeros((batch_size, window, 8)),
 				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
-				 'x1hist' : numpy.zeros((batch_size, 90)),
-				 'x2hist' : numpy.zeros((batch_size, 90)),
 				 'distance' : numpy.zeros((batch_size, 281)) }
 
 		labels = { 'softmax_short_label' : numpy.zeros(batch_size) - 1,
@@ -309,11 +293,6 @@ class TrainingGenerator(DataIter):
 				if self.use_dnase:
 					data['x1dnase'][i] = dnases[c][mid1-width:mid1+width]
 					data['x2dnase'][i] = dnases[c][mid2-width:mid2+width]
-
-				if self.use_hist:
-					for k in range(5):
-						data['x1hist'][i][18*k:18*(k+1)] = self.histones[c][k][(mid1 - width) / window]
-						data['x2hist'][i][18*k:18*(k+1)] = self.histones[c][k][(mid2 - width) / window]
 
 				if self.use_dist:
 					distance = mid2 - mid1 - self.min_dist
@@ -465,67 +444,6 @@ def Dense(x, num_hidden, act_type='relu'):
 	x = mx.symbol.BatchNorm(data=x)
 	x = mx.symbol.Activation(data=x, act_type=act_type)
 	return x
-
-def Seq(seq):
-	conv1 = Convolution( seq, 96, (7, 4), pad=(3, 0) )
-	pool1 = Pooling( conv1, kernel=(3, 1), stride=(3, 1), pool_type='max' )
-	conv2 = Convolution( pool1, 96, (7, 1), pad=(3, 0) )
-	pool2 = Pooling( conv2, kernel=(3, 1), stride=(3, 1), pool_type='max' )
-	return pool2
-
-def DNase(dnase):
-	pool1 = Pooling( dnase, kernel=(9, 1), stride=(9, 1), pool_type='avg' )
-	conv1 = Convolution( pool1, 12, (5, 8), pad=(2, 0) )
-	return conv1
-
-def OldArm(seq, dnase):
-	x = Concat(Seq(seq), DNase(dnase))
-
-	x = Convolution(x, 64, (1, 1))
-	x = Convolution(x, 64, (3, 1))
-	x = Flatten(Pooling(x, kernel=(100, 1), stride=(100, 1), pool_type='max' ))
-	x = Dense(x, 512)
-	return x
-
-def Oldbutan(**kwargs):
-	"""Create the Rambutan model.
-
-	The current default values are the following:
-
-		ctx=[mx.gpu(2), mx.gpu(3)], 
-		symbol=Rambutan(),
-		epoch_size=5000,
-		num_epoch=50,
-		learning_rate=0.01,
-		wd=0.0,
-		optimizer='adam'
-
-	"""
-
-	x1seq = Variable(name="x1seq")
-	x1dnase = Variable(name="x1dnase")
-	x1hist = Variable(name="x1hist")
-
-	x2seq = Variable(name="x2seq")
-	x2dnase = Variable(name="x2dnase")
-	x2hist = Variable(name="x2hist")
-
-	x1hist_ip1 = Dense(x1hist, 64)
-	x2hist_ip1 = Dense(x2hist, 64)
-
-	x1 = Arm(x1seq, x1dnase)
-	x2 = Arm(x2seq, x2dnase)
-
-	xd = Variable(name="distance")
-	xd_ip1 = Dense(xd, 64)
-	x = Concat(x1, x2, xd_ip1, x1hist_ip1, x2hist_ip1)
-
-	ip1 = Dense(x, 512)
-	ip2 = Dense(ip1, 512)
-	y_p = mx.symbol.FullyConnected(ip2, num_hidden=2)
-	softmax = SoftmaxOutput( data=y_p, name='softmax' )
-	model = mx.model.FeedForward( symbol=softmax, **kwargs )
-	return model
 
 def Rambutan(**kwargs):
 	x1seq = Variable(name="x1seq")
