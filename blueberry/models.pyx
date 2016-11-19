@@ -163,44 +163,26 @@ class TrainingGenerator(DataIter):
 
 			i = 0
 			while i < batch_size:
-				if i % 6 == 0:
+				if i % 2 == 0:
 					k = numpy.random.randint(len(contacts))
 					c, mid1, mid2 = contacts[k, :3]
-					if not (25000 <= mid2 - mid1 <= 100000):
+					if i % 3 == 0 and not (25000 <= mid2 - mid1 <= 100000):
 						continue
-				elif i % 6 == 1:
-					c = numpy.random.randint(self.n)
-					while True:
-						mid1 = numpy.random.choice(regions[c])
-						mid2 = mid1 + numpy.random.choice(short_regions)  
-						if mid2 <= regions[c][-1] and not contact_dict.has_key((c, mid1, mid2)):
-							break					
+					elif i % 3 == 1 and not (100000 <= mid2 - mid1 <= 1000000):
+						continue
+					elif i % 3 == 2 and not (1000000 <= mid2 - mid1 <= 10000000):
+						continue
+				else:
+					mid1 = numpy.random.choice(regions[c])
+					if i % 3 == 0:
+						mid2 = mid1 + numpy.random.choice(short_regions)
+					elif i % 3 == 1:
+						mid2 = mid1 + numpy.random.choice(mid_regions)
+					elif i % 3 == 2:
+						mid = mid1 + numpy.random.choice(long_regions)
 
-				elif i % 6 == 2:
-					k = numpy.random.randint(len(contacts))
-					c, mid1, mid2 = contacts[k, :3]
-					if not (100000 <= mid2 - mid1 <= 1000000):
+					if mid2 >= regions[c][-1] or contact_dict.has_key((c, mid1, mid2)):
 						continue
-				elif i % 6 == 3:
-					c = numpy.random.randint(self.n)
-					while True:
-						mid1 = numpy.random.choice(regions[c])
-						mid2 = mid1 + numpy.random.choice(mid_regions)  
-						if mid2 <= regions[c][-1] and not contact_dict.has_key((c, mid1, mid2)):
-							break	
-
-				elif i % 6 == 4:
-					k = numpy.random.randint(len(contacts))
-					c, mid1, mid2 = contacts[k, :3]
-					if not (1000000 <= mid2 - mid1 <= 10000000):
-						continue
-				elif i % 6 == 5:
-					c = numpy.random.randint(self.n)
-					while True:
-						mid1 = numpy.random.choice(regions[c])
-						mid2 = mid1 + numpy.random.choice(long_regions)  
-						if mid2 <= regions[c][-1] and not contact_dict.has_key((c, mid1, mid2)):
-							break	
 
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
 
