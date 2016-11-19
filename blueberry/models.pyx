@@ -37,6 +37,30 @@ random.seed(0)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
+class MultiAUC(mx.metric.EvalMetric):
+	"""Calculate accuracies of multi label"""
+
+	def __init__(self, num=None):
+		super(MultiAUC, self).__init__('multi-accuracy', num)
+
+	def update(self, labels, preds):
+		mx.metric.check_label_shapes(labels, preds)
+
+		for i, (y_true, y_pred) in enumerate(zip(labels, preds)):
+			y_pred = mx.nd.argmax_channel(y_pred).asnumpy().astype('int32')
+			y_true = y_true.asnumpy().astype('int32')
+
+			y_pred = y_pred[y_true != -1]
+			y_true = y_true[y_true != -1]
+
+			if y_true.shape[0] < 2:
+				pass
+			elif numpy.unique(y_true).shape[0] < 2:
+				pass 
+			else:
+				self.sum_metric[i] += roc_auc_score(y_true, y_pred)
+				self.num_inst[i] += 1
+
 def cross_celltype_dict( contacts ):
 	"""Take in a contact map and return a dictionary."""
 
@@ -54,128 +78,6 @@ def cross_chromosome_dict(contacts):
 		d[chromosome, mid2, mid1] = p
 
 	return d
-
-class ValidationGenerator(DataIter):
-	"""Generator iterator, collects batches from a generator showing a full subset.
-
-	Use on only one chromosome for now."""
-
-	def __init__(self, sequence, dnase, contacts, regions, window, 
-		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
-		min_dist=25000, max_dist=10000000):
-		super(ValidationGenerator, self).__init__()
-
-		self.sequence     = sequence
-		self.dnase        = dnase
-		self.contacts     = contacts
-		self.contact_dict = contacts_to_hashmap(contacts)
-		self.regions      = regions
-		self.use_seq      = use_seq
-		self.use_dnase    = use_dnase
-		self.use_dist     = use_dist
-		self.min_dist     = min_dist
-		self.max_dist     = max_dist
-
-		self.window = window
-		self.batch_size = batch_size
-		self.data_shapes = {'x1seq' : (1, window, 4), 'x2seq' : (1, window, 4), 
-			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,)}
-
-	@property
-	def provide_data(self):
-		"""The name and shape of data provided by this iterator"""
-		return [(k, tuple([self.batch_size] + list(v))) for k, v in self.data_shapes.items()]
-
-	@property
-	def provide_label(self):
-		"""The name and shape of label provided by this iterator"""
-		return [('softmax_short_label', (self.batch_size,)), ('softmax_mid_label', (self.batch_size,)), ('softmax_long_label', (self.batch_size,))]
-
-	def __iter__(self):
-		cdef numpy.ndarray sequence = self.sequence
-		cdef numpy.ndarray dnase = self.dnase
-		cdef dict data, labels
-		cdef int i, j = 0, k, batch_size = self.batch_size, window = self.window, l
-		cdef int mid1, mid2, distance, width=window/2
-		cdef list data_list, label_list
-		cdef str key
-		cdef list region_range = range(self.min_dist, self.max_dist+window, window)
-
-		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
-				 'x2seq' : numpy.zeros((batch_size, window, 4)),
-				 'x1dnase' : numpy.zeros((batch_size, window, 8)),
-				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
-				 'distance' : numpy.zeros((batch_size, 281)) 
-		}
-
-		labels = { 'softmax_short_label' : numpy.zeros(batch_size) - 1,
-				   'softmax_mid_label' : numpy.zeros(batch_size) - 1,
-				   'softmax_long_label' : numpy.zeros(batch_size) - 1 
-		}
-
-		j = 0
-		l = self.contacts.shape[0] - batch_size*2
-		while j < l:
-			data['x1seq'] = data['x1seq'].reshape(batch_size, window, 4)
-			data['x2seq'] = data['x2seq'].reshape(batch_size, window, 4)
-			data['x1dnase'] = data['x1dnase'].reshape(batch_size, window, 8)
-			data['x2dnase'] = data['x2dnase'].reshape(batch_size, window, 8)
-
-			i = 0
-			while i < batch_size:
-				if i % 2 == 0:
-					mid1, mid2 = self.contacts[j]
-					j += 1
-					if not (self.min_dist <= mid2 - mid1 <= self.max_dist) and j < l:
-						continue
-
-				else:
-					while True:
-						mid1 = numpy.random.choice(self.regions)
-						mid2 = mid1 + numpy.random.choice(region_range)  
-						if mid2 <= self.regions[-1]:
-							break
-
-				if 25000 <= mid2 - mid1 <= 100000:
-					labels['softmax_short_label'][i] = (i+1)%2
-				elif 100000 <= mid2 - mid1 <= 1000000:
-					labels['softmax_mid_label'][i] = (i+1)%2
-				elif mid2 - mid1 >= 1000000:
-					labels['softmax_mid_label'][i] = (i+1)%2
-				else:
-					raise ValueError
-
-				if self.use_seq:
-					data['x1seq'][i] = sequence[mid1-width:mid1+width]
-					data['x2seq'][i] = sequence[mid2-width:mid2+width]
-
-				if self.use_dnase:
-					data['x1dnase'][i] = dnase[mid1-width:mid1+width]
-					data['x2dnase'][i] = dnase[mid2-width:mid2+width]
-
-				if self.use_dist:
-					distance = mid2 - mid1 - self.min_dist
-					for k in range(100):
-						data['distance'][i][k] = 1 if distance >= k*1000 else 0
-					for k in range(91):
-						data['distance'][i][k+100] = 1 if distance >= 100000 + k*10000 else 0
-					for k in range(91):
-						data['distance'][i][k+190] = 1 if distance >= 1000000 + k*100000 else 0
-
-				i += 1
-
-			data['x1seq'] = data['x1seq'].reshape(batch_size, 1, window, 4)
-			data['x2seq'] = data['x2seq'].reshape(batch_size, 1, window, 4)
-			data['x1dnase'] = data['x1dnase'].reshape(batch_size, 1, window, 8)
-			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 8)
-
-			data_list = [ array(data[key]) for key in self.data_shapes.keys() ]
-			label_list = [ array(labels['softmax_short_label']), array(labels['softmax_mid_label']), array(labels['softmax_long_label']) ]
-			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
-
-	def reset(self):
-		pass
-
 
 class TrainingGenerator(DataIter):
 	"""Generator iterator, collects batches from a generator.
@@ -278,7 +180,7 @@ class TrainingGenerator(DataIter):
 
 				if 25000 <= mid2 - mid1 <= 100000:
 					labels['softmax_short_label'][i] = (i+1)%2
-				elif 100000 <= mid2 - mid1 <= 1000000:
+				elif 100000 < mid2 - mid1 <= 1000000:
 					labels['softmax_mid_label'][i] = (i+1)%2
 				elif mid2 - mid1 >= 1000000:
 					labels['softmax_mid_label'][i] = (i+1)%2
@@ -292,6 +194,127 @@ class TrainingGenerator(DataIter):
 				if self.use_dnase:
 					data['x1dnase'][i] = dnases[c][mid1-width:mid1+width]
 					data['x2dnase'][i] = dnases[c][mid2-width:mid2+width]
+
+				if self.use_dist:
+					distance = mid2 - mid1 - self.min_dist
+					for k in range(100):
+						data['distance'][i][k] = 1 if distance >= k*1000 else 0
+					for k in range(91):
+						data['distance'][i][k+100] = 1 if distance >= 100000 + k*10000 else 0
+					for k in range(91):
+						data['distance'][i][k+190] = 1 if distance >= 1000000 + k*100000 else 0
+
+				i += 1
+
+			data['x1seq'] = data['x1seq'].reshape(batch_size, 1, window, 4)
+			data['x2seq'] = data['x2seq'].reshape(batch_size, 1, window, 4)
+			data['x1dnase'] = data['x1dnase'].reshape(batch_size, 1, window, 8)
+			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 8)
+
+			data_list = [ array(data[key]) for key in self.data_shapes.keys() ]
+			label_list = [ array(labels['softmax_short_label']), array(labels['softmax_mid_label']), array(labels['softmax_long_label']) ]
+			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
+
+	def reset(self):
+		pass
+
+class ValidationGenerator(DataIter):
+	"""Generator iterator, collects batches from a generator showing a full subset.
+
+	Use on only one chromosome for now."""
+
+	def __init__(self, sequence, dnase, contacts, regions, window, 
+		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
+		min_dist=25000, max_dist=10000000):
+		super(ValidationGenerator, self).__init__()
+
+		self.sequence     = sequence
+		self.dnase        = dnase
+		self.contacts     = contacts
+		self.contact_dict = contacts_to_hashmap(contacts)
+		self.regions      = regions
+		self.use_seq      = use_seq
+		self.use_dnase    = use_dnase
+		self.use_dist     = use_dist
+		self.min_dist     = min_dist
+		self.max_dist     = max_dist
+
+		self.window = window
+		self.batch_size = batch_size
+		self.data_shapes = {'x1seq' : (1, window, 4), 'x2seq' : (1, window, 4), 
+			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,)}
+
+	@property
+	def provide_data(self):
+		"""The name and shape of data provided by this iterator"""
+		return [(k, tuple([self.batch_size] + list(v))) for k, v in self.data_shapes.items()]
+
+	@property
+	def provide_label(self):
+		"""The name and shape of label provided by this iterator"""
+		return [('softmax_short_label', (self.batch_size,)), ('softmax_mid_label', (self.batch_size,)), ('softmax_long_label', (self.batch_size,))]
+
+	def __iter__(self):
+		cdef numpy.ndarray sequence = self.sequence
+		cdef numpy.ndarray dnase = self.dnase
+		cdef dict data, labels
+		cdef int i, j = 0, k, batch_size = self.batch_size, window = self.window, l
+		cdef int mid1, mid2, distance, width=window/2
+		cdef list data_list, label_list
+		cdef str key
+		cdef list region_range = range(self.min_dist, self.max_dist+window, window)
+
+		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
+				 'x2seq' : numpy.zeros((batch_size, window, 4)),
+				 'x1dnase' : numpy.zeros((batch_size, window, 8)),
+				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
+				 'distance' : numpy.zeros((batch_size, 281)) 
+		}
+
+		labels = { 'softmax_short_label' : numpy.zeros(batch_size) - 1,
+				   'softmax_mid_label' : numpy.zeros(batch_size) - 1,
+				   'softmax_long_label' : numpy.zeros(batch_size) - 1 
+		}
+
+		j = 0
+		l = self.contacts.shape[0] - batch_size*2
+		while j < l:
+			data['x1seq'] = data['x1seq'].reshape(batch_size, window, 4)
+			data['x2seq'] = data['x2seq'].reshape(batch_size, window, 4)
+			data['x1dnase'] = data['x1dnase'].reshape(batch_size, window, 8)
+			data['x2dnase'] = data['x2dnase'].reshape(batch_size, window, 8)
+
+			i = 0
+			while i < batch_size:
+				if i % 2 == 0:
+					mid1, mid2 = self.contacts[j]
+					j += 1
+					if not (self.min_dist <= mid2 - mid1 <= self.max_dist) and j < l:
+						continue
+
+				else:
+					while True:
+						mid1 = numpy.random.choice(self.regions)
+						mid2 = mid1 + numpy.random.choice(region_range)  
+						if mid2 <= self.regions[-1]:
+							break
+
+				if 25000 <= mid2 - mid1 <= 100000:
+					labels['softmax_short_label'][i] = (i+1)%2
+				elif 100000 <= mid2 - mid1 <= 1000000:
+					labels['softmax_mid_label'][i] = (i+1)%2
+				elif mid2 - mid1 >= 1000000:
+					labels['softmax_mid_label'][i] = (i+1)%2
+				else:
+					raise ValueError
+
+				if self.use_seq:
+					data['x1seq'][i] = sequence[mid1-width:mid1+width]
+					data['x2seq'][i] = sequence[mid2-width:mid2+width]
+
+				if self.use_dnase:
+					data['x1dnase'][i] = dnase[mid1-width:mid1+width]
+					data['x2dnase'][i] = dnase[mid2-width:mid2+width]
 
 				if self.use_dist:
 					distance = mid2 - mid1 - self.min_dist
@@ -504,10 +527,9 @@ def Arm(seq, dnase):
 	return x
 
 def Task(x1, x2, d, name):
-	xd = Dense(d, 32)
 	x = Concat(x1, x2)
 	x = Dense(x, 128)
-	x = Concat(x, xd)
+	x = Concat(x, Dense(d, 32))
 	x = Dense(x, 128)
 	x = mx.symbol.FullyConnected(x, num_hidden=2)
 	y = SoftmaxOutput(data=x, name="softmax_{}".format(name), ignore_label=-1, use_ignore=True)
