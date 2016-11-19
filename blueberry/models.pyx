@@ -517,16 +517,16 @@ def Rambutan(**kwargs):
 	return model
 
 def Arm(seq, dnase):
-	seq = Convolution(seq, 48, (7, 4), pad=(3, 0))
+	seq = Convolution(seq, 96, (7, 4), pad=(3, 0))
 	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
-	seq = Convolution(seq, 48, (7, 1), pad=(3, 0))
+	seq = Convolution(seq, 96, (7, 1), pad=(3, 0))
 	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
 
 	dnase = Pooling(dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
 	dnase = Convolution(dnase, 12, (5, 8), pad=(2, 0))
 
 	x = Concat(seq, dnase)
-	x = Convolution(x, 64, (3, 1))
+	x = Convolution(x, 96, (3, 1))
 	x = Flatten(Pooling(x, kernel=(108, 1), stride=(108, 1), pool_type='max'))
 	x = Dense(x, 256)
 	return x
