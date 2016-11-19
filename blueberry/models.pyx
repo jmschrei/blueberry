@@ -189,7 +189,7 @@ class TrainingGenerator(DataIter):
 						if mid2 <= regions[c][-1] and not contact_dict.has_key((c, mid1, mid2)):
 							break	
 
-				if i % 6 == 4:
+				elif i % 6 == 4:
 					k = numpy.random.randint(len(contacts))
 					c, mid1, mid2 = contacts[k, :3]
 					if not (1000000 <= mid2 - mid1 <= 10000000):
