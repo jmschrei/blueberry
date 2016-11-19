@@ -517,25 +517,25 @@ def Rambutan(**kwargs):
 	return model
 
 def Arm(seq, dnase):
-	seq = Convolution(seq, 96, (7, 4), pad=(3, 0))
+	seq = Convolution(seq, 128, (7, 4), pad=(3, 0))
 	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
-	seq = Convolution(seq, 96, (7, 1), pad=(3, 0))
+	seq = Convolution(seq, 128, (7, 1), pad=(3, 0))
 	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
 
 	dnase = Pooling(dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
 	dnase = Convolution(dnase, 12, (5, 8), pad=(2, 0))
 
 	x = Concat(seq, dnase)
-	x = Convolution(x, 96, (3, 1))
+	x = Convolution(x, 164, (3, 1))
 	x = Flatten(Pooling(x, kernel=(108, 1), stride=(108, 1), pool_type='max'))
-	x = Dense(x, 256)
+	x = Dense(x, 512)
 	return x
 
 def Task(x1, x2, d, name):
 	x = Concat(x1, x2)
-	x = Dense(x, 128)
+	x = Dense(x, 256)
 	x = Concat(x, Dense(d, 32))
-	x = Dense(x, 128)
+	x = Dense(x, 256)
 	x = mx.symbol.FullyConnected(x, num_hidden=2)
 	y = SoftmaxOutput(data=x, name="softmax_{}".format(name), ignore_label=-1, use_ignore=True)
 	return y
