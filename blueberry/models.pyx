@@ -191,7 +191,6 @@ class TrainingGenerator(DataIter):
 						continue
 
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
-				print mid1, mid2, len(sequence[c])
 
 				if self.use_seq:
 					data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
