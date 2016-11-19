@@ -140,7 +140,9 @@ class TrainingGenerator(DataIter):
 		cdef int i, c, k, mid1, mid2, distance, width = window/2
 		cdef dict data, labels, contact_dict = self.contact_dict
 		cdef list data_list, label_list
-		cdef list region_range = range(self.min_dist, self.max_dist+window, window)
+		cdef list short_regions = range(25000, 100000, 1000)
+		cdef list mid_regions = range(100000, 1000000, 1000)
+		cdef list long_regions = range(1000000, 10000000, 1000)
 
 		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
@@ -161,20 +163,44 @@ class TrainingGenerator(DataIter):
 
 			i = 0
 			while i < batch_size:
-				if i % 2 == 0:
+				if i % 6 == 0:
 					k = numpy.random.randint(len(contacts))
 					c, mid1, mid2 = contacts[k, :3]
-					if not (self.min_dist <= mid2 - mid1 <= self.max_dist):
+					if not (25000 <= mid2 - mid1 <= 100000):
 						continue
-
-				else:
+				elif i % 6 == 1:
 					c = numpy.random.randint(self.n)
-
 					while True:
 						mid1 = numpy.random.choice(regions[c])
-						mid2 = mid1 + numpy.random.choice(region_range)  
+						mid2 = mid1 + numpy.random.choice(short_regions)  
 						if mid2 <= regions[c][-1] and not contact_dict.has_key((c, mid1, mid2)):
-							break
+							break					
+
+				elif i % 6 == 2:
+					k = numpy.random.randint(len(contacts))
+					c, mid1, mid2 = contacts[k, :3]
+					if not (100000 <= mid2 - mid1 <= 1000000):
+						continue
+				elif i % 6 == 3:
+					c = numpy.random.randint(self.n)
+					while True:
+						mid1 = numpy.random.choice(regions[c])
+						mid2 = mid1 + numpy.random.choice(mid_regions)  
+						if mid2 <= regions[c][-1] and not contact_dict.has_key((c, mid1, mid2)):
+							break	
+
+				if i % 6 == 4:
+					k = numpy.random.randint(len(contacts))
+					c, mid1, mid2 = contacts[k, :3]
+					if not (1000000 <= mid2 - mid1 <= 10000000):
+						continue
+				elif i % 6 == 5:
+					c = numpy.random.randint(self.n)
+					while True:
+						mid1 = numpy.random.choice(regions[c])
+						mid2 = mid1 + numpy.random.choice(long_regions)  
+						if mid2 <= regions[c][-1] and not contact_dict.has_key((c, mid1, mid2)):
+							break	
 
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
 
