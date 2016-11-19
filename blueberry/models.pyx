@@ -167,33 +167,31 @@ class TrainingGenerator(DataIter):
 					k = numpy.random.randint(len(contacts))
 					c, mid1, mid2 = contacts[k, :3]
 					if i % 3 == 0 and not (25000 <= mid2 - mid1 <= 100000):
+						labels['softmax_short_label'][i] = (i+1)%2
 						continue
 					elif i % 3 == 1 and not (100000 <= mid2 - mid1 <= 1000000):
+						labels['softmax_mid_label'][i] = (i+1)%2
 						continue
 					elif i % 3 == 2 and not (1000000 <= mid2 - mid1 <= 10000000):
+						labels['softmax_mid_label'][i] = (i+1)%2
 						continue
 				else:
 					mid1 = numpy.random.choice(regions[c])
 					if i % 3 == 0:
+						labels['softmax_short_label'][i] = (i+1)%2
 						mid2 = mid1 + numpy.random.choice(short_regions)
 					elif i % 3 == 1:
+						labels['softmax_mid_label'][i] = (i+1)%2
 						mid2 = mid1 + numpy.random.choice(mid_regions)
 					elif i % 3 == 2:
+						labels['softmax_mid_label'][i] = (i+1)%2
 						mid = mid1 + numpy.random.choice(long_regions)
 
 					if mid2 >= regions[c][-1] or contact_dict.has_key((c, mid1, mid2)):
 						continue
 
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
-
-				if 25000 <= mid2 - mid1 <= 100000:
-					labels['softmax_short_label'][i] = (i+1)%2
-				elif 100000 < mid2 - mid1 <= 1000000:
-					labels['softmax_mid_label'][i] = (i+1)%2
-				elif mid2 - mid1 >= 1000000:
-					labels['softmax_mid_label'][i] = (i+1)%2
-				else:
-					raise ValueError
+				print mid1, mid2, len(sequence[c])
 
 				if self.use_seq:
 					data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
