@@ -50,6 +50,10 @@ class MultiAUC(mx.metric.EvalMetric):
 			y_pred = mx.nd.argmax_channel(y_pred).asnumpy().astype('int32')
 			y_true = y_true.asnumpy().astype('int32')
 
+			print y_pred[:10]
+			print y_true[:10]
+			print
+
 			y_pred = y_pred[y_true != -1]
 			y_true = y_true[y_true != -1]
 
