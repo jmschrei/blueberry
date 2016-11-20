@@ -59,7 +59,7 @@ class MultiAUC(mx.metric.EvalMetric):
 				pass 
 			else:
 				self.sum_metric[i] += roc_auc_score(y_true, y_pred)
-				self.num_inst[i] += y_true.shape[0]
+				self.num_inst[i] += 1
 
 def cross_celltype_dict( contacts ):
 	"""Take in a contact map and return a dictionary."""
