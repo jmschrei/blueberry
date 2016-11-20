@@ -170,10 +170,10 @@ class TrainingGenerator(DataIter):
 						labels['softmax_short_label'][i] = 1
 						continue
 					elif i % 3 == 1 and not (100000 < mid2 - mid1 <= 1000000):
-						labels['softmax_mid_label'][i] = -1
+						labels['softmax_mid_label'][i] = 1
 						continue
 					elif i % 3 == 2 and not (1000000 < mid2 - mid1 <= 10000000):
-						labels['softmax_long_label'][i] = -1
+						labels['softmax_long_label'][i] = 1
 						continue
 				else:
 					mid1 = numpy.random.choice(regions[c])
@@ -181,10 +181,10 @@ class TrainingGenerator(DataIter):
 						labels['softmax_short_label'][i] = 0
 						mid2 = mid1 + numpy.random.choice(short_regions)
 					elif i % 3 == 1:
-						labels['softmax_mid_label'][i] = -1
+						labels['softmax_mid_label'][i] = 0
 						mid2 = mid1 + numpy.random.choice(mid_regions)
 					elif i % 3 == 2:
-						labels['softmax_long_label'][i] = -1
+						labels['softmax_long_label'][i] = 0
 						mid = mid1 + numpy.random.choice(long_regions)
 
 					if mid2 >= regions[c][-1] or contact_dict.has_key((c, mid1, mid2)):
