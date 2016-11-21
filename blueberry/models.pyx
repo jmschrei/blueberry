@@ -185,7 +185,7 @@ class TrainingGenerator(DataIter):
 						mid2 = mid1 + numpy.random.choice(mid_regions)
 					elif i % 3 == 2:
 						labels['softmax_long_label'][i] = 0
-						mid = mid1 + numpy.random.choice(long_regions)
+						mid2 = mid1 + numpy.random.choice(long_regions)
 
 					if mid2 >= regions[c][-1] or contact_dict.has_key((c, mid1, mid2)):
 						continue
@@ -306,9 +306,9 @@ class ValidationGenerator(DataIter):
 
 				if 25000 <= mid2 - mid1 <= 100000:
 					labels['softmax_short_label'][i] = (i+1)%2
-				elif 100000 <= mid2 - mid1 <= 1000000:
+				elif 100000 < mid2 - mid1 <= 1000000:
 					labels['softmax_mid_label'][i] = (i+1)%2
-				elif mid2 - mid1 >= 1000000:
+				elif mid2 - mid1 > 1000000:
 					labels['softmax_long_label'][i] = (i+1)%2
 				else:
 					raise ValueError
