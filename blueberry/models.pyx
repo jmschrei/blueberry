@@ -309,7 +309,7 @@ class ValidationGenerator(DataIter):
 				elif 100000 <= mid2 - mid1 <= 1000000:
 					labels['softmax_mid_label'][i] = (i+1)%2
 				elif mid2 - mid1 >= 1000000:
-					labels['softmax_mid_label'][i] = (i+1)%2
+					labels['softmax_long_label'][i] = (i+1)%2
 				else:
 					raise ValueError
 
