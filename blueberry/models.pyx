@@ -547,20 +547,14 @@ def MultiButan(**kwargs):
 	x2seq = Variable(name="x2seq")
 	x2dnase = Variable(name="x2dnase")
 
-	x11 = Arm(x1seq, x1dnase)
-	x12 = Arm(x2seq, x2dnase)
-
-	x21 = Arm(x1seq, x1dnase)
-	x22 = Arm(x2seq, x2dnase)
-
-	x31 = Arm(x1seq, x1dnase)
-	x32 = Arm(x2seq, x2dnase)
+	x1 = Arm(x1seq, x1dnase)
+	x2 = Arm(x2seq, x2dnase)
 
 	xd = Variable(name="distance")
 
-	y1 = Task(x11, x12, xd, "short")
-	y2 = Task(x21, x22, xd, "mid")
-	y3 = Task(x31, x32, xd, "long")
+	y1 = Task(x1, x2, xd, "short")
+	y2 = Task(x1, x2, xd, "mid")
+	y3 = Task(x1, x2, xd, "long")
 
 	y = mx.symbol.Group([y1, y2, y3])
 	model = mx.model.FeedForward(symbol=y, **kwargs)
