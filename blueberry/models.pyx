@@ -281,9 +281,11 @@ class ValidationGenerator(DataIter):
 		cdef dict data, labels
 		cdef int i, j = 0, k, batch_size = self.batch_size, window = self.window, l
 		cdef int mid1, mid2, distance, width=window/2
-		cdef list data_list, label_list
+		cdef list data_list, label_list, last_mid1, last_mid2
 		cdef str key
-		cdef list region_range = range(self.min_dist, self.max_dist+window, window)
+		cdef list short_regions = range(25000, 100000, 1000)
+		cdef list mid_regions = range(100000, 1000000, 1000)
+		cdef list long_regions = range(1000000, 10000000, 1000)
 
 		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
@@ -318,9 +320,18 @@ class ValidationGenerator(DataIter):
 				else:
 					while True:
 						mid1 = numpy.random.choice(self.regions)
-						mid2 = mid1 + numpy.random.choice(region_range)  
-						if mid2 <= self.regions[-1]:
+						if 25000 <= last_mid2 - last_mid1 < 100000: 
+							mid2 = mid1 + numpy.random.choice(short_regions)
+						elif 100000 <= last_mid2 - last_mid1 < 1000000:
+							mid2 = mid1 + numpy.random.choice(mid_regions)
+						else:
+							mid2 = mid1 + numpy.random.choice(long_regions)
+
+						if mid2 >= regions[c][-1] or contact_dict.has_key((c, mid1, mid2)):
+							continue
+						else:
 							break
+
 
 				if 25000 <= mid2 - mid1 <= 100000:
 					labels['softmax_short_label'][i] = (i+1)%2
@@ -357,6 +368,8 @@ class ValidationGenerator(DataIter):
 						data['distance'][i][k+190] = 1 if distance >= 1000000 + k*100000 else 0
 
 				i += 1
+				last_mid1 = mid1
+				last_mid2 = mid2
 
 			data['x1seq'] = data['x1seq'].reshape(batch_size, 1, window, 4)
 			data['x2seq'] = data['x2seq'].reshape(batch_size, 1, window, 4)
