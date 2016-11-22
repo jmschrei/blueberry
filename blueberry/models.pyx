@@ -564,7 +564,7 @@ def Arm(seq, dnase, dnase_agg):
 	dnase = Pooling(dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
 	dnase = Convolution(dnase, 12, (5, 8), pad=(2, 0))
 
-	agg = Flatten(dnase_agg)
+	agg = Dense(Flatten(dnase_agg), 32)
 
 	x = Concat(seq, dnase)
 	x = Convolution(x, 64, (1, 1))
