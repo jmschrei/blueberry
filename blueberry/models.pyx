@@ -118,7 +118,8 @@ class TrainingGenerator(DataIter):
 		self.window = window
 		self.batch_size = batch_size
 		self.data_shapes = {'x1seq' : (1, window, 4), 'x2seq' : (1, window, 4), 
-			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,)}
+			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,),
+			'x1dnase_agg' : (1, 4, 8), 'x2dnase_agg' : (1, 4, 8)}
 
 	@property
 	def provide_data(self):
@@ -148,7 +149,9 @@ class TrainingGenerator(DataIter):
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
 				 'x1dnase' : numpy.zeros((batch_size, window, 8)),
 				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
-				 'distance' : numpy.zeros((batch_size, 281)) }
+				 'distance' : numpy.zeros((batch_size, 281)),
+				 'x1dnase_agg' : numpy.zeros((batch_size, 4, 8)),
+				 'x2dnase_agg' : numpy.zeros((batch_size, 4, 8))}
 
 		labels = { 'softmax_short_label' : numpy.zeros(batch_size) - 1,
 				   'softmax_mid_label' : numpy.zeros(batch_size) - 1,
@@ -199,6 +202,14 @@ class TrainingGenerator(DataIter):
 				if self.use_dnase:
 					data['x1dnase'][i] = dnases[c][mid1-width:mid1+width]
 					data['x2dnase'][i] = dnases[c][mid2-width:mid2+width]
+					data['x1dnase_agg'][i][0] = data['x1dnase'][i].min(axis=0)
+					data['x1dnase_agg'][i][1] = data['x1dnase'][i].max(axis=0)
+					data['x1dnase_agg'][i][2] = numpy.median(data['x1dnase'][i], axis=0)
+					data['x1dnase_agg'][i][3] = numpy.mean(data['x1dnase'][i], axis=0)
+					data['x2dnase_agg'][i][0] = data['x2dnase'][i].min(axis=0)
+					data['x2dnase_agg'][i][1] = data['x2dnase'][i].max(axis=0)
+					data['x2dnase_agg'][i][2] = numpy.median(data['x2dnase'][i], axis=0)
+					data['x2dnase_agg'][i][3] = numpy.mean(data['x2dnase'][i], axis=0)
 
 				if self.use_dist:
 					distance = mid2 - mid1 - self.min_dist
@@ -215,6 +226,8 @@ class TrainingGenerator(DataIter):
 			data['x2seq'] = data['x2seq'].reshape(batch_size, 1, window, 4)
 			data['x1dnase'] = data['x1dnase'].reshape(batch_size, 1, window, 8)
 			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 8)
+			data['x1dnase_agg'] = data['x1dnase_agg'].reshape(batch_size, 1, 4, 8)
+			data['x2dnase_agg'] = data['x2dnase_agg'].reshape(batch_size, 1, 4, 8)
 
 			data_list = [ array(data[key]) for key in self.data_shapes.keys() ]
 			label_list = [ array(labels['softmax_short_label']), array(labels['softmax_mid_label']), array(labels['softmax_long_label']) ]
@@ -247,7 +260,8 @@ class ValidationGenerator(DataIter):
 		self.window = window
 		self.batch_size = batch_size
 		self.data_shapes = {'x1seq' : (1, window, 4), 'x2seq' : (1, window, 4), 
-			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,)}
+			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,),
+			'x1dnase_agg' : (1, 4, 8), 'x2dnase_agg' : (1, 4, 8)}
 
 	@property
 	def provide_data(self):
@@ -273,7 +287,9 @@ class ValidationGenerator(DataIter):
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
 				 'x1dnase' : numpy.zeros((batch_size, window, 8)),
 				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
-				 'distance' : numpy.zeros((batch_size, 281)) 
+				 'distance' : numpy.zeros((batch_size, 281)),
+				 'x1dnase_agg' : numpy.zeros((batch_size, 4, 8)),
+				 'x2dnase_agg' : numpy.zeros((batch_size, 4, 8))
 		}
 
 		labels = { 'softmax_short_label' : numpy.zeros(batch_size) - 1,
@@ -320,6 +336,14 @@ class ValidationGenerator(DataIter):
 				if self.use_dnase:
 					data['x1dnase'][i] = dnase[mid1-width:mid1+width]
 					data['x2dnase'][i] = dnase[mid2-width:mid2+width]
+					data['x1dnase_agg'][i][0] = data['x1dnase'][i].min(axis=0)
+					data['x1dnase_agg'][i][1] = data['x1dnase'][i].max(axis=0)
+					data['x1dnase_agg'][i][2] = numpy.median(data['x1dnase'][i], axis=0)
+					data['x1dnase_agg'][i][3] = numpy.mean(data['x1dnase'][i], axis=0)
+					data['x2dnase_agg'][i][0] = data['x2dnase'][i].min(axis=0)
+					data['x2dnase_agg'][i][1] = data['x2dnase'][i].max(axis=0)
+					data['x2dnase_agg'][i][2] = numpy.median(data['x2dnase'][i], axis=0)
+					data['x2dnase_agg'][i][3] = numpy.mean(data['x2dnase'][i], axis=0)
 
 				if self.use_dist:
 					distance = mid2 - mid1 - self.min_dist
@@ -336,6 +360,8 @@ class ValidationGenerator(DataIter):
 			data['x2seq'] = data['x2seq'].reshape(batch_size, 1, window, 4)
 			data['x1dnase'] = data['x1dnase'].reshape(batch_size, 1, window, 8)
 			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 8)
+			data['x1dnase_agg'] = data['x1dnase_agg'].reshape(batch_size, 1, 4, 8)
+			data['x2dnase_agg'] = data['x2dnase_agg'].reshape(batch_size, 1, 4, 8)
 
 			data_list = [ array(data[key]) for key in self.data_shapes.keys() ]
 			label_list = [ array(labels['softmax_short_label']), array(labels['softmax_mid_label']), array(labels['softmax_long_label']) ]
@@ -516,7 +542,7 @@ def Rambutan(**kwargs):
 	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
 
-def Arm(seq, dnase):
+def Arm(seq, dnase, dnase_agg):
 	seq = Convolution(seq, 48, (7, 4), pad=(3, 0))
 	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
 	seq = Convolution(seq, 48, (7, 1), pad=(3, 0))
@@ -525,9 +551,12 @@ def Arm(seq, dnase):
 	dnase = Pooling(dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
 	dnase = Convolution(dnase, 12, (5, 8), pad=(2, 0))
 
+	agg = Flatten(dnase_agg)
+
 	x = Concat(seq, dnase)
 	x = Convolution(x, 64, (1, 1))
 	x = Flatten(Pooling(x, kernel=(108, 1), stride=(108, 1), pool_type='max'))
+	x = Concat(x, agg)
 	x = Dense(x, 256)
 	return x
 
@@ -543,12 +572,14 @@ def Task(x1, x2, d, name):
 def MultiButan(**kwargs):
 	x1seq = Variable(name="x1seq")
 	x1dnase = Variable(name="x1dnase")
+	x1agg = Variable("x1dnase_agg")
 
 	x2seq = Variable(name="x2seq")
 	x2dnase = Variable(name="x2dnase")
+	x2agg = Variable(name="x2dnase_agg")
 
-	x1 = Arm(x1seq, x1dnase)
-	x2 = Arm(x2seq, x2dnase)
+	x1 = Arm(x1seq, x1dnase, x1agg)
+	x2 = Arm(x2seq, x2dnase, x2agg)
 
 	xd = Variable(name="distance")
 
