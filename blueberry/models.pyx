@@ -306,8 +306,8 @@ class ValidationGenerator(DataIter):
 			data['x2seq'] = data['x2seq'].reshape(batch_size, window, 4)
 			data['x1dnase'] = data['x1dnase'].reshape(batch_size, window, 8)
 			data['x2dnase'] = data['x2dnase'].reshape(batch_size, window, 8)
-			data['x1dnase_agg'] = data['x1dnase_agg'].reshape(batch_size, 4, 8)
-			data['x2dnase_agg'] = data['x2dnase_agg'].reshape(batch_size, 4, 8)
+			data['x1dnase_agg'] = data['x1dnase_agg'].reshape(batch_size, 3, 8)
+			data['x2dnase_agg'] = data['x2dnase_agg'].reshape(batch_size, 3, 8)
 
 			i = 0
 			while i < batch_size:
