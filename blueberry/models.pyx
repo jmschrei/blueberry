@@ -318,20 +318,13 @@ class ValidationGenerator(DataIter):
 						continue
 
 				else:
-					while True:
-						mid1 = numpy.random.choice(self.regions)
-						if 25000 <= last_mid2 - last_mid1 < 100000: 
-							mid2 = mid1 + numpy.random.choice(short_regions)
-						elif 100000 <= last_mid2 - last_mid1 < 1000000:
-							mid2 = mid1 + numpy.random.choice(mid_regions)
-						else:
-							mid2 = mid1 + numpy.random.choice(long_regions)
-
-						if mid2 >= regions[c][-1] or contact_dict.has_key((c, mid1, mid2)):
-							continue
-						else:
-							break
-
+					mid1 = numpy.random.choice(self.regions)
+					if 25000 <= last_mid2 - last_mid1 <= 100000: 
+						mid2 = mid1 + numpy.random.choice(short_regions)
+					elif 100000 < last_mid2 - last_mid1 <= 1000000:
+						mid2 = mid1 + numpy.random.choice(mid_regions)
+					else:
+						mid2 = mid1 + numpy.random.choice(long_regions)
 
 				if 25000 <= mid2 - mid1 <= 100000:
 					labels['softmax_short_label'][i] = (i+1)%2
