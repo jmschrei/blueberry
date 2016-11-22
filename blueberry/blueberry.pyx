@@ -10,6 +10,9 @@ from libc.math cimport exp
 
 cimport numpy
 import numpy
+from scipy.sparse import csr_matrix
+from scipy import io
+
 
 import random, time, os, gzip
 from .utils import *
@@ -90,91 +93,91 @@ cpdef count_band_regions( numpy.ndarray regions_ndarray ):
 
 	return t
 
-def predict(name, iteration, ctx, n_jobs, bint use_seq=True, bint use_dnase=True, 
+def predict(name, iteration, ctx, n_jobs, n_bins, bint use_seq=True, bint use_dnase=True, 
 	bint use_dist=True, int min_dist=25000, int max_dist=10000000):
 	cdef int batch_size = 10240, window = 1000, width = 500
-	cdef int k = 0, tot = 0, i, j, l, mid1, mid2, 
+	cdef int k = 0, tot = 0, i, j, l, mid1, mid2, coord1, coord2
 	cdef numpy.ndarray sequence = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.ohe.npy')
 	cdef numpy.ndarray dnase = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.ohe_dnase.npy')
 	cdef numpy.ndarray mid2_regions = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.regions.1000.npy').astype('int')
-	cdef numpy.ndarray coords = numpy.zeros((batch_size, 2))
-	cdef numpy.ndarray predictions = numpy.zeros((batch_size, 3))
 	cdef numpy.ndarray mid1_regions = mid2_regions[ctx::n_jobs]
+
+	cdef numpy.ndarray coords = numpy.zeros((batch_size, 2))
+	cdef csr_matrix predictions = csr_matrix((n_bins, n_bins), dtype='float32')
+
 	cdef int n = mid1_regions.shape[0], m = mid2_regions.shape[0]
 
 	print "GPU [{}] -- data loaded".format(ctx)
 	model = mx.model.FeedForward.load(name, iteration, ctx=mx.gpu(ctx))
 	print "GPU [{}] -- model loaded".format(ctx)
 
-	with open('{}-{}-predictions-{}.txt'.format(name, iteration, ctx), 'w') as outfile:
-		for i in range(n):
-			mid1 = mid1_regions[i]
-			for j in range(m):
-				mid2 = mid2_regions[j]
-				if not min_dist <= mid2 - mid1 <= max_dist:
-					continue
+	for i in range(n):
+		mid1 = mid1_regions[i]
+		for j in range(m):
+			mid2 = mid2_regions[j]
+			if not min_dist <= mid2 - mid1 <= max_dist:
+				continue
 
-				if k == 0:
-					data = { 'x1seq'    : numpy.zeros((batch_size, window, 4)),
-							 'x2seq'    : numpy.zeros((batch_size, window, 4)),
-							 'x1dnase'  : numpy.zeros((batch_size, window, 8)),
-							 'x2dnase'  : numpy.zeros((batch_size, window, 8)),
-							 'distance' : numpy.zeros((batch_size, 281)) }
+			if k == 0:
+				data = { 'x1seq'    : numpy.zeros((batch_size, window, 4)),
+						 'x2seq'    : numpy.zeros((batch_size, window, 4)),
+						 'x1dnase'  : numpy.zeros((batch_size, window, 8)),
+						 'x2dnase'  : numpy.zeros((batch_size, window, 8)),
+						 'distance' : numpy.zeros((batch_size, 281)) }
 
-				if k != batch_size:
-					if use_seq:
-						data['x1seq'][k] = sequence[mid1-width:mid1+width]
-						data['x2seq'][k] = sequence[mid2-width:mid2+width]
+			if k != batch_size:
+				if use_seq:
+					data['x1seq'][k] = sequence[mid1-width:mid1+width]
+					data['x2seq'][k] = sequence[mid2-width:mid2+width]
 
-					if use_dnase:
-						data['x1dnase'][k] = dnase[mid1-width:mid1+width]
-						data['x2dnase'][k] = dnase[mid2-width:mid2+width]
+				if use_dnase:
+					data['x1dnase'][k] = dnase[mid1-width:mid1+width]
+					data['x2dnase'][k] = dnase[mid2-width:mid2+width]
 
-					if use_dist:
-						distance = mid2 - mid1 - min_dist
-						for l in range(100):
-							data['distance'][k][l] = 1 if distance >= l*1000 else 0
-						for l in range(91):
-							data['distance'][k][l+100] = 1 if distance >= 100000 + l*10000 else 0
-						for l in range(91):
-							data['distance'][k][l+190] = 1 if distance >= 1000000 + l*100000 else 0
+				if use_dist:
+					distance = mid2 - mid1 - min_dist
+					for l in range(100):
+						data['distance'][k][l] = 1 if distance >= l*1000 else 0
+					for l in range(91):
+						data['distance'][k][l+100] = 1 if distance >= 100000 + l*10000 else 0
+					for l in range(91):
+						data['distance'][k][l+190] = 1 if distance >= 1000000 + l*100000 else 0
 
-					coords[k] = mid1, mid2
+				coords[k] = mid1, mid2
 
-					k += 1
-					tot += 1
+				k += 1
+				tot += 1
 
-				else:
-					print "GPU [{}] -- {} samples loaded, predicting...".format(ctx, k),
-					data['x1seq'] = data['x1seq'].reshape((batch_size, 1, window, 4))
-					data['x2seq'] = data['x2seq'].reshape((batch_size, 1, window, 4))
-					data['x1dnase'] = data['x1dnase'].reshape((batch_size, 1, window, 8))
-					data['x2dnase'] = data['x2dnase'].reshape((batch_size, 1, window, 8))
+			else:
+				print "GPU [{}] -- {} samples loaded, predicting...".format(ctx, k),
+				data['x1seq'] = data['x1seq'].reshape((batch_size, 1, window, 4))
+				data['x2seq'] = data['x2seq'].reshape((batch_size, 1, window, 4))
+				data['x1dnase'] = data['x1dnase'].reshape((batch_size, 1, window, 8))
+				data['x2dnase'] = data['x2dnase'].reshape((batch_size, 1, window, 8))
 
-					X = mx.io.NDArrayIter(data, batch_size=1024)
-					y = model.predict(X)
-					k = 0
+				X = mx.io.NDArrayIter(data, batch_size=1024)
+				y = model.predict(X)
 
-					data['x1seq'] = data['x1seq'].reshape((batch_size, window, 4))
-					data['x2seq'] = data['x2seq'].reshape((batch_size, window, 4))
-					data['x1dnase'] = data['x1dnase'].reshape((batch_size, window, 8))
-					data['x2dnase'] = data['x2dnase'].reshape((batch_size, window, 8))
+				data['x1seq'] = data['x1seq'].reshape((batch_size, window, 4))
+				data['x2seq'] = data['x2seq'].reshape((batch_size, window, 4))
+				data['x1dnase'] = data['x1dnase'].reshape((batch_size, window, 8))
+				data['x2dnase'] = data['x2dnase'].reshape((batch_size, window, 8))
 
-					predictions[:,0] = coords[:,0]
-					predictions[:,1] = coords[:,1]
+				for l in range(k):
+					coord1, coord2 = coords[l]
+					distance = coord2 - coord1
 
-					for l, distance in enumerate(coords[:,1] - coords[:,0]):
-						if 25000 <= distance <= 100000:
-							predictions[l, 2] = y[0][l, 1]
-						elif 100000 < distance <= 1000000:
-							predictions[l, 2] = y[1][l, 1]
-						else:
-							predictions[l, 2] = y[2][l, 1]
+					if 25000 <= distance <= 100000:
+						predictions[coord1, coord2] = y[0][l, 1]
+					elif 100000 < distance <= 1000000:
+						predictions[coord1, coord2] = y[1][l, 1]
+					else:
+						predictions[coord1, coord2] = y[2][l, 1]
 
-					coords *= 0
+				k = 0
+				coords *= 0
 
-					for mid1, mid2, y in predictions:
-						outfile.write( "{} {} {}\n".format(mid1, mid2, y) )
+				print
+				print "GPU [{}] -- {} samples predicted and output".format(ctx, tot)
 
-					print
-					print "GPU [{}] -- {} samples predicted and output".format(ctx, tot)
+	io.mmwrite("{}-{}-predictions-{}.mtx".format(name, iteration, ctx), predictions)
