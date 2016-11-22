@@ -10,7 +10,7 @@ from libc.math cimport exp
 
 cimport numpy
 import numpy
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, lil_matrix
 from scipy import io
 
 
