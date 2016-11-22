@@ -280,8 +280,8 @@ class ValidationGenerator(DataIter):
 		cdef numpy.ndarray dnase = self.dnase
 		cdef dict data, labels
 		cdef int i, j = 0, k, batch_size = self.batch_size, window = self.window, l
-		cdef int mid1, mid2, distance, width=window/2
-		cdef list data_list, label_list, last_mid1, last_mid2
+		cdef int mid1, mid2, distance, width=window/2, last_mid1, last_mid2
+		cdef list data_list, label_list
 		cdef str key
 		cdef list short_regions = range(25000, 100000, 1000)
 		cdef list mid_regions = range(100000, 1000000, 1000)
