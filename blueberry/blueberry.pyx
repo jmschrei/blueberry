@@ -103,7 +103,7 @@ def predict(name, iteration, ctx, n_jobs, n_bins, bint use_seq=True, bint use_dn
 	cdef numpy.ndarray mid1_regions = mid2_regions[ctx::n_jobs]
 
 	cdef numpy.ndarray coords = numpy.zeros((batch_size, 2))
-	cdef numpy.ndarray predictions = numpy.zeros((n_bins, n_bins), dtype='float32')
+	cdef object predictions = lil_matrix((n_bins, n_bins), dtype='float32')
 
 	cdef int n = mid1_regions.shape[0], m = mid2_regions.shape[0]
 
@@ -183,4 +183,4 @@ def predict(name, iteration, ctx, n_jobs, n_bins, bint use_seq=True, bint use_dn
 				print
 				print "GPU [{}] -- {} samples predicted and output".format(ctx, tot)
 
-	io.mmwrite("{}-{}-predictions-{}.mtx".format(name, iteration, ctx), predictions)
+	io.mmwrite("{}-{}-predictions-{}.mtx".format(name, iteration, ctx), csr_matrix(predictions))
