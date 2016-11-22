@@ -167,6 +167,9 @@ def predict(name, iteration, ctx, n_jobs, n_bins, bint use_seq=True, bint use_dn
 					coord1, coord2 = coords[l]
 					distance = coord2 - coord1
 
+					coord1 = (coord1 - width) / window
+					coord2 = (coord2 - width) / window
+
 					if 25000 <= distance <= 100000:
 						predictions[coord1, coord2] = y[0][l, 1]
 					elif 100000 < distance <= 1000000:
