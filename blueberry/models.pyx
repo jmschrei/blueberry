@@ -526,17 +526,16 @@ def Rambutan(**kwargs):
 	return model
 
 def Arm(seq, dnase):
-	seq = Convolution(seq, 96, (7, 4), pad=(3, 0))
+	seq = Convolution(seq, 48, (7, 4), pad=(3, 0))
 	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
-	seq = Convolution(seq, 96, (7, 1), pad=(3, 0))
+	seq = Convolution(seq, 48, (7, 1), pad=(3, 0))
 	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
 
 	dnase = Pooling(dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
 	dnase = Convolution(dnase, 12, (5, 8), pad=(2, 0))
 
 	x = Concat(seq, dnase)
-	x = Convolution(x, 96, (1, 1))
-	x = Convolution(x, 96, (3, 1))
+	x = Convolution(x, 48, (1, 1))
 	x = Flatten(Pooling(x, kernel=(108, 1), stride=(108, 1), pool_type='max'))
 	x = Dense(x, 256)
 	return x
@@ -565,6 +564,30 @@ def MultiButan(**kwargs):
 	y1 = Task(x1, x2, xd, "short")
 	y2 = Task(x1, x2, xd, "mid")
 	y3 = Task(x1, x2, xd, "long")
+
+	y = mx.symbol.Group([y1, y2, y3])
+	model = mx.model.FeedForward(symbol=y, **kwargs)
+	return model
+
+def IndButan(**kwargs):
+	x1seq = Variable(name="x1seq")
+	x1dnase = Variable(name="x1dnase")
+
+	x2seq = Variable(name="x2seq")
+	x2dnase = Variable(name="x2dnase")
+
+	x11 = Arm(x1seq, x1dnase)
+	x12 = Arm(x2seq, x2dnase)
+	x21 = Arm(x1seq, x1dnase)
+	x22 = Arm(x2seq, x2dnase)
+	x31 = Arm(x1seq, x1dnase)
+	x32 = Arm(x2seq, x2dnase)
+
+	xd = Variable(name="distance")
+
+	y1 = Task(x11, x12, xd, "short")
+	y2 = Task(x21, x22, xd, "mid")
+	y3 = Task(x31, x32, xd, "long")
 
 	y = mx.symbol.Group([y1, y2, y3])
 	model = mx.model.FeedForward(symbol=y, **kwargs)
