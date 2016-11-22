@@ -326,6 +326,9 @@ class ValidationGenerator(DataIter):
 					else:
 						mid2 = mid1 + numpy.random.choice(long_regions)
 
+					if mid2 >= self.regions[-1]:
+						continue
+
 				if 25000 <= mid2 - mid1 <= 100000:
 					labels['softmax_short_label'][i] = (i+1)%2
 				elif 100000 < mid2 - mid1 <= 1000000:
