@@ -236,7 +236,6 @@ class ValidationGenerator(DataIter):
 		self.sequence     = sequence
 		self.dnase        = dnase
 		self.contacts     = contacts
-		self.contact_dict = contacts_to_hashmap(contacts)
 		self.regions      = regions
 		self.use_seq      = use_seq
 		self.use_dnase    = use_dnase
