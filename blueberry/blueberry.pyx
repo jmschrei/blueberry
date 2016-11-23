@@ -94,8 +94,8 @@ cpdef count_band_regions( numpy.ndarray regions_ndarray ):
 	return t
 
 def predict(model, n_bins, outfile, bint use_seq=True, bint use_dnase=True, 
-	bint use_dist=True, int min_dist=25000, int max_dist=10000000):
-	cdef int batch_size = 10240, window = 1000, width = 500
+	bint use_dist=True, int min_dist=25000, int max_dist=10000000, batch_size=10240):
+	cdef int window = 1000, width = 500
 	cdef int k = 0, tot = 0, i, j, l, mid1, mid2, coord1, coord2
 	cdef numpy.ndarray sequence = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.ohe.npy')
 	cdef numpy.ndarray dnase = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.ohe_dnase.npy')
