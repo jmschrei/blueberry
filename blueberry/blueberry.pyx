@@ -93,7 +93,7 @@ cpdef count_band_regions( numpy.ndarray regions_ndarray ):
 
 	return t
 
-def predict(name, iteration, ctx, n_jobs, n_bins, filename, bint use_seq=True, bint use_dnase=True, 
+def predict(name, iteration, ctx, n_jobs, filename, bint use_seq=True, bint use_dnase=True, 
 	bint use_dist=True, int min_dist=25000, int max_dist=10000000, batch_size=10240):
 	cdef int window = 1000, width = 500
 	cdef int k = 0, tot = 0, i, j, l, mid1, mid2
@@ -102,6 +102,10 @@ def predict(name, iteration, ctx, n_jobs, n_bins, filename, bint use_seq=True, b
 	cdef numpy.ndarray regions = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.regions.1000.npy').astype('int')
 	cdef numpy.ndarray predictions = numpy.zeros((batch_size, 3), dtype='float32')
 	cdef int n = regions.shape[0]
+
+	print "GPU [{}] -- data loaded".format(ctx)
+	model = mx.model.FeedForward.load(name, iteration, ctx=mx.gpu(ctx))
+	print "GPU [{}] -- model loaded".format(ctx)
 
 	with open(filename, 'w') as outfile:
 		for mid1 in regions:
@@ -141,7 +145,7 @@ def predict(name, iteration, ctx, n_jobs, n_bins, filename, bint use_seq=True, b
 					tot += 1
 
 				else:
-					print "[GPU] -- {} samples loaded, predicting...".format(k),
+					print "GPU [{}] -- {} samples loaded, predicting...".format(ctx, k),
 					data['x1seq'] = data['x1seq'].reshape((batch_size, 1, window, 4))
 					data['x2seq'] = data['x2seq'].reshape((batch_size, 1, window, 4))
 					data['x1dnase'] = data['x1dnase'].reshape((batch_size, 1, window, 8))
@@ -168,7 +172,7 @@ def predict(name, iteration, ctx, n_jobs, n_bins, filename, bint use_seq=True, b
 						outfile.write("{} {} {}\n".format(mid1, mid2, y))
 
 					print
-					print "[GPU] -- {} samples predicted and output".format(tot)
+					print "GPU [{}] -- {} samples predicted and output".format(ctx, tot)
 
 def merge_results(name, iteration, ctxs, resolution, outfile):
 	width = resolution / 2
