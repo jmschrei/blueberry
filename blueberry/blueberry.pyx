@@ -106,9 +106,7 @@ def predict(model, n_bins, outfile, bint use_seq=True, bint use_dnase=True,
 
 	cdef int n = regions.shape[0]
 
-	print "GPU [{}] -- data loaded".format(ctx)
 	#model = mx.model.Module.load(name, iteration, ctx=[mx.gpu(0), mx.gpu(1), mx.gpu(2), mx.gpu(3)])
-	print "GPU [{}] -- model loaded".format(ctx)
 
 	for i in range(n):
 		mid1 = regions[i]
@@ -148,7 +146,7 @@ def predict(model, n_bins, outfile, bint use_seq=True, bint use_dnase=True,
 				tot += 1
 
 			else:
-				print "GPU [{}] -- {} samples loaded, predicting...".format(ctx, k),
+				print "[GPU] -- {} samples loaded, predicting...".format(k),
 				data['x1seq'] = data['x1seq'].reshape((batch_size, 1, window, 4))
 				data['x2seq'] = data['x2seq'].reshape((batch_size, 1, window, 4))
 				data['x1dnase'] = data['x1dnase'].reshape((batch_size, 1, window, 8))
@@ -180,6 +178,6 @@ def predict(model, n_bins, outfile, bint use_seq=True, bint use_dnase=True,
 				coords *= 0
 
 				print
-				print "GPU [{}] -- {} samples predicted and output".format(ctx, tot)
+				print "[GPU] -- {} samples predicted and output".format(tot)
 
 	numpy.save(outfile, predictions)
