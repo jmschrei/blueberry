@@ -152,7 +152,7 @@ def predict(name, iteration, ctx, n_jobs, bint use_seq=True, bint use_dnase=True
 					data['x2dnase'] = data['x2dnase'].reshape((batch_size, 1, window, 8))
 
 					X = mx.io.NDArrayIter(data, batch_size=1024)
-					y = [array.asnumpy() for array in model.predict(X)]
+					y = model.predict(X)
 					k = 0
 
 					data['x1seq'] = data['x1seq'].reshape((batch_size, window, 4))
