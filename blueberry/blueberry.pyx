@@ -104,7 +104,7 @@ def predict(name, iteration, ctx, n_jobs, n_bins, filename, bint use_seq=True, b
 	cdef int n = regions.shape[0]
 
 	with open(filename, 'w') as outfile:
-		for mid1 in regions::
+		for mid1 in regions:
 			for mid2 in regions[ctx::n_jobs]:
 				if not min_dist <= mid2 - mid1 <= max_dist:
 					continue
@@ -169,3 +169,20 @@ def predict(name, iteration, ctx, n_jobs, n_bins, filename, bint use_seq=True, b
 
 					print
 					print "[GPU] -- {} samples predicted and output".format(tot)
+
+def merge_results(name, iteration, ctxs, resolution, outfile):
+	width = resolution / 2
+	n = numpy.load('chr21.pred.npy', mmap_mode='r').shape[0]
+	y = numpy.zeros((n, n))
+
+	for ctx in ctxs:
+		with open('{}-{}-predictions-{}.txt'.format(name, iteration, ctx), 'r') as infile:
+			for line in infile:
+				mid1, mid2, p = line.split()
+				mid1 = (int(float(mid1)) - width) / resolution
+				mid2 = (int(float(mid2)) - width) / resolution
+				p = float(p)
+
+				y[mid1, mid2] = p
+
+	numpy.save(outfile, y)
