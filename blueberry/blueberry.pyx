@@ -155,6 +155,9 @@ def predict(model, n_bins, outfile, bint use_seq=True, bint use_dnase=True,
 				X = mx.io.NDArrayIter(data, batch_size=1024)
 				y = model.predict(X)
 
+				print y
+				print y.shape
+
 				data['x1seq'] = data['x1seq'].reshape((batch_size, window, 4))
 				data['x2seq'] = data['x2seq'].reshape((batch_size, window, 4))
 				data['x1dnase'] = data['x1dnase'].reshape((batch_size, window, 8))
