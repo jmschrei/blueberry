@@ -93,7 +93,7 @@ cpdef count_band_regions( numpy.ndarray regions_ndarray ):
 
 	return t
 
-def predict(name, iteration, ctx, n_jobs, filename, bint use_seq=True, bint use_dnase=True, 
+def predict(name, iteration, ctx, n_jobs, bint use_seq=True, bint use_dnase=True, 
 	bint use_dist=True, int min_dist=25000, int max_dist=10000000, batch_size=10240):
 	cdef int window = 1000, width = 500
 	cdef int k = 0, tot = 0, i, j, l, mid1, mid2
@@ -107,7 +107,7 @@ def predict(name, iteration, ctx, n_jobs, filename, bint use_seq=True, bint use_
 	model = mx.model.FeedForward.load(name, iteration, ctx=mx.gpu(ctx))
 	print "GPU [{}] -- model loaded".format(ctx)
 
-	with open(filename, 'w') as outfile:
+	with open('{}-{}-predictions-{}.txt'.format(name, iteration, ctx), 'w') as outfile:
 		for mid1 in regions:
 			for mid2 in regions[ctx::n_jobs]:
 				if not min_dist <= mid2 - mid1 <= max_dist:
