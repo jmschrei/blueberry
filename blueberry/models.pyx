@@ -138,7 +138,7 @@ class TrainingGenerator(DataIter):
 		cdef numpy.ndarray regions = self.regions
 		cdef numpy.ndarray x1dnase, x2dnase
 		cdef int window = self.window, batch_size = self.batch_size
-		cdef int i, c, k, mid1, mid2, distance, width = window/2
+		cdef int i, c, k, mid1, mid2, distance, width = window/2, batch
 		cdef dict data, labels, contact_dict = self.contact_dict
 		cdef list data_list, label_list
 		cdef list short_regions = range(25000, 100000, 1000)
@@ -156,7 +156,7 @@ class TrainingGenerator(DataIter):
 				   'softmax_long_label' : numpy.zeros(batch_size) - 1 
 		}
 
-		while True:
+		for batch in range(self.n_batches):
 			data['x1seq'] = data['x1seq'].reshape(batch_size, window, 4)
 			data['x2seq'] = data['x2seq'].reshape(batch_size, window, 4)
 			data['x1dnase'] = data['x1dnase'].reshape(batch_size, window, 8) * 0
@@ -220,6 +220,8 @@ class TrainingGenerator(DataIter):
 			data_list = [ array(data[key]) for key in self.data_shapes.keys() ]
 			label_list = [ array(labels['softmax_short_label']), array(labels['softmax_mid_label']), array(labels['softmax_long_label']) ]
 			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
+
+		raise StopIteration
 
 	def iter_next(self):
 		print self.n_batches, self.cur
