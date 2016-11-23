@@ -100,7 +100,7 @@ class TrainingGenerator(DataIter):
 	"""
 	def __init__(self, sequences, dnases, contacts, regions, window, 
 		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
-		use_hist=True, min_dist=25000, max_dist=10000000):
+		use_hist=True, min_dist=25000, max_dist=10000000, n_batches=500):
 		super(TrainingGenerator, self).__init__()
 
 		self.sequence     = sequences
@@ -114,6 +114,7 @@ class TrainingGenerator(DataIter):
 		self.use_dist     = use_dist
 		self.min_dist     = min_dist
 		self.max_dist     = max_dist
+		self.n_batches    = n_batches
 
 		self.window = window
 		self.batch_size = batch_size
@@ -219,6 +220,14 @@ class TrainingGenerator(DataIter):
 			data_list = [ array(data[key]) for key in self.data_shapes.keys() ]
 			label_list = [ array(labels['softmax_short_label']), array(labels['softmax_mid_label']), array(labels['softmax_long_label']) ]
 			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
+
+	def iter_next(self):
+		if self.cur == self.n_batches:
+			return False
+
+		self.current_batch = self.next()
+		self.cur += 1
+		return True
 
 	def reset(self):
 		pass
