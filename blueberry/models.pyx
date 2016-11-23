@@ -222,6 +222,7 @@ class TrainingGenerator(DataIter):
 			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
 
 	def iter_next(self):
+		print self.n_batches, self.cur
 		if self.cur == self.n_batches:
 			return False
 
