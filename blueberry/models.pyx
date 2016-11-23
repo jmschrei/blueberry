@@ -577,8 +577,7 @@ def MultiButan(**kwargs):
 	y3 = Task(x1, x2, xd, "long")
 
 	y = mx.symbol.Group([y1, y2, y3])
-	model = mx.module.Module(symbol=y, **kwargs, data_names=('x1seq', 'x1dnase', 'x2seq', 'x2dnase', 'distance'), 
-		label_names=('softmax_short_label', 'softmax_mid_label', 'softmax_long_label'))
+	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
 
 def IndButan(**kwargs):
@@ -602,6 +601,5 @@ def IndButan(**kwargs):
 	y3 = Task(x31, x32, xd, "long")
 
 	y = mx.symbol.Group([y1, y2, y3])
-	model = mx.module.Module(symbol=y, **kwargs, data_names=('x1seq', 'x1dnase', 'x2seq', 'x2dnase', 'distance'), 
-		label_names=('softmax_short_label', 'softmax_mid_label', 'softmax_long_label'))
+	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
