@@ -93,7 +93,7 @@ cpdef count_band_regions( numpy.ndarray regions_ndarray ):
 
 	return t
 
-def predict(name, iteration, ctx, n_jobs, n_bins, bint use_seq=True, bint use_dnase=True, 
+def predict(model, n_bins, outfile, bint use_seq=True, bint use_dnase=True, 
 	bint use_dist=True, int min_dist=25000, int max_dist=10000000):
 	cdef int batch_size = 10240, window = 1000, width = 500
 	cdef int k = 0, tot = 0, i, j, l, mid1, mid2, coord1, coord2
@@ -102,7 +102,7 @@ def predict(name, iteration, ctx, n_jobs, n_bins, bint use_seq=True, bint use_dn
 	cdef numpy.ndarray regions = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.regions.1000.npy').astype('int')
 
 	cdef numpy.ndarray coords = numpy.zeros((batch_size, 2))
-	cdef object predictions = lil_matrix((n_bins, n_bins), dtype='float32')
+	cdef numpy.ndarray predictions = numpy.zeros((n_bins, n_bins), dtype='float32')
 
 	cdef int n = regions.shape[0]
 
@@ -182,12 +182,4 @@ def predict(name, iteration, ctx, n_jobs, n_bins, bint use_seq=True, bint use_dn
 				print
 				print "GPU [{}] -- {} samples predicted and output".format(ctx, tot)
 
-	io.mmwrite("{}-{}-predictions-{}.mtx".format(name, iteration, ctx), csr_matrix(predictions))
-
-def merge_results(name, iteration, ctxs, n_bins, outfile):
-	y = csr_matrix((n_bins, n_bins))
-
-	for ctx in ctxs:
-		y += io.mmread('{}-{}-predictions-{}.mtx'.format(name, iteration, ctx))
-
-	numpy.save(outfile, numpy.array(y.todense()))
+	numpy.save(outfile, predictions)
