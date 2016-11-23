@@ -99,22 +99,21 @@ def predict(name, iteration, ctx, n_jobs, n_bins, bint use_seq=True, bint use_dn
 	cdef int k = 0, tot = 0, i, j, l, mid1, mid2, coord1, coord2
 	cdef numpy.ndarray sequence = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.ohe.npy')
 	cdef numpy.ndarray dnase = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.ohe_dnase.npy')
-	cdef numpy.ndarray mid2_regions = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.regions.1000.npy').astype('int')
-	cdef numpy.ndarray mid1_regions = mid2_regions[ctx::n_jobs]
+	cdef numpy.ndarray regions = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.regions.1000.npy').astype('int')
 
 	cdef numpy.ndarray coords = numpy.zeros((batch_size, 2))
 	cdef object predictions = lil_matrix((n_bins, n_bins), dtype='float32')
 
-	cdef int n = mid1_regions.shape[0], m = mid2_regions.shape[0]
+	cdef int n = regions.shape[0]
 
 	print "GPU [{}] -- data loaded".format(ctx)
-	model = mx.model.FeedForward.load(name, iteration, ctx=mx.gpu(ctx), kvstore='device')
+	model = mx.model.Module.load(name, iteration, ctx=[mx.gpu(0), mx.gpu(1), mx.gpu(2), mx.gpu(3)])
 	print "GPU [{}] -- model loaded".format(ctx)
 
 	for i in range(n):
-		mid1 = mid1_regions[i]
-		for j in range(m):
-			mid2 = mid2_regions[j]
+		mid1 = regions[i]
+		for j in range(i, n):
+			mid2 = regions[j]
 			if not min_dist <= mid2 - mid1 <= max_dist:
 				continue
 
