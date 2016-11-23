@@ -107,7 +107,7 @@ def predict(model, n_bins, outfile, bint use_seq=True, bint use_dnase=True,
 	cdef int n = regions.shape[0]
 
 	print "GPU [{}] -- data loaded".format(ctx)
-	model = mx.model.Module.load(name, iteration, ctx=[mx.gpu(0), mx.gpu(1), mx.gpu(2), mx.gpu(3)])
+	#model = mx.model.Module.load(name, iteration, ctx=[mx.gpu(0), mx.gpu(1), mx.gpu(2), mx.gpu(3)])
 	print "GPU [{}] -- model loaded".format(ctx)
 
 	for i in range(n):
