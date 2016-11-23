@@ -108,7 +108,7 @@ def predict(name, iteration, ctx, n_jobs, n_bins, bint use_seq=True, bint use_dn
 	cdef int n = mid1_regions.shape[0], m = mid2_regions.shape[0]
 
 	print "GPU [{}] -- data loaded".format(ctx)
-	model = mx.model.FeedForward.load(name, iteration, ctx=mx.gpu(ctx))
+	model = mx.model.FeedForward.load(name, iteration, ctx=mx.gpu(ctx), kvstore='device')
 	print "GPU [{}] -- model loaded".format(ctx)
 
 	for i in range(n):
