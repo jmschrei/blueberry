@@ -248,7 +248,7 @@ class ValidationGenerator(DataIter):
 				else:
 					mid1, mid2 = numpy.random.choice(self.regions, 2)
 					mid2 = mid1 + numpy.random.choice((self.max_dist - self.min_dist) / window) * window + self.min_dist
-					if mid2 > self.regions[c][-1]:
+					if mid2 > self.regions[-1]:
 						continue
 
 				labels['softmax_label'][i] = (i+1)%2
