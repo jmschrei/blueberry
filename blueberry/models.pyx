@@ -149,7 +149,7 @@ class TrainingGenerator(DataIter):
 
 		labels = { 'softmax_label' : numpy.zeros(batch_size) }
 
-		for batch in range(self.n_batches):
+		while True:
 			data['x1seq'] = data['x1seq'].reshape(batch_size, window, 4)
 			data['x2seq'] = data['x2seq'].reshape(batch_size, window, 4)
 			data['x1dnase'] = data['x1dnase'].reshape(batch_size, window, 8) * 0
@@ -194,8 +194,6 @@ class TrainingGenerator(DataIter):
 			data_list = [array(data[key]) for key in self.data_shapes.keys()]
 			label_list = [array(labels['softmax_label'])]
 			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
-
-		raise StopIteration
 
 	def reset(self):
 		pass
