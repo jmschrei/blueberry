@@ -100,7 +100,7 @@ class TrainingGenerator(DataIter):
 	"""
 	def __init__(self, sequences, dnases, contacts, regions, window, 
 		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
-		use_hist=True, min_dist=25000, max_dist=10000000):
+		min_dist=25000, max_dist=10000000):
 		super(TrainingGenerator, self).__init__()
 
 		self.sequence     = sequences
@@ -449,7 +449,6 @@ def Rambutan(**kwargs):
 	x1seq = Flatten(Pooling(x1seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
 	x1chrom = Flatten(Pooling(x1dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='avg'))
-	x1chrom = Concat(x1chrom, x1hist)
 	x1chrom = Dense(x1chrom, 96)
 
 	x1 = Concat(x1seq, x1chrom)
@@ -464,8 +463,7 @@ def Rambutan(**kwargs):
 	x2seq = Flatten(Pooling(x2seq, kernel=(325, 1), stride=(325, 1), pool_type='max'))
 
 	x2chrom = Flatten(Pooling(x2dnase, kernel=(1000, 1), stride=(1000, 1), pool_type='avg'))
-	x2chrom = Concat(x2chrom, x2hist)
-	x2chrom = Dense(x2chrom, 86)
+	x2chrom = Dense(x2chrom, 96)
 
 	x2 = Concat(x2seq, x2chrom)
 	x2 = Dense(x2, 256)
