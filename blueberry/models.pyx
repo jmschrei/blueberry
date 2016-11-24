@@ -129,7 +129,7 @@ class TrainingGenerator(DataIter):
 	@property
 	def provide_label(self):
 		"""The name and shape of label provided by this iterator"""
-		return [('softmax_short_label', (self.batch_size,)), ('softmax_mid_label', (self.batch_size,)), ('softmax_long_label', (self.batch_size,))]
+		return [('softmax_label', (self.batch_size,))]
 
 	def __iter__(self):
 		cdef numpy.ndarray sequence = self.sequence
@@ -141,9 +141,6 @@ class TrainingGenerator(DataIter):
 		cdef int i, c, k, mid1, mid2, distance, width = window/2, batch
 		cdef dict data, labels, contact_dict = self.contact_dict
 		cdef list data_list, label_list
-		cdef list short_regions = range(25000, 100000, 1000)
-		cdef list mid_regions = range(100000, 1000000, 1000)
-		cdef list long_regions = range(1000000, 10000000, 1000)
 
 		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
@@ -151,10 +148,7 @@ class TrainingGenerator(DataIter):
 				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
 				 'distance' : numpy.zeros((batch_size, 281))}
 
-		labels = { 'softmax_short_label' : numpy.zeros(batch_size) - 1,
-				   'softmax_mid_label' : numpy.zeros(batch_size) - 1,
-				   'softmax_long_label' : numpy.zeros(batch_size) - 1 
-		}
+		labels = { 'softmax_label' : numpy.zeros(batch_size) }
 
 		for batch in range(self.n_batches):
 			data['x1seq'] = data['x1seq'].reshape(batch_size, window, 4)
@@ -167,28 +161,9 @@ class TrainingGenerator(DataIter):
 				if i % 2 == 0:
 					k = numpy.random.randint(len(contacts))
 					c, mid1, mid2 = contacts[k, :3]
-					if i % 3 == 0 and not (25000 <= mid2 - mid1 <= 100000):
-						labels['softmax_short_label'][i] = 1
-						continue
-					elif i % 3 == 1 and not (100000 < mid2 - mid1 <= 1000000):
-						labels['softmax_mid_label'][i] = 1
-						continue
-					elif i % 3 == 2 and not (1000000 < mid2 - mid1 <= 10000000):
-						labels['softmax_long_label'][i] = 1
-						continue
 				else:
-					mid1 = numpy.random.choice(regions[c])
-					if i % 3 == 0:
-						labels['softmax_short_label'][i] = 0
-						mid2 = mid1 + numpy.random.choice(short_regions)
-					elif i % 3 == 1:
-						labels['softmax_mid_label'][i] = 0
-						mid2 = mid1 + numpy.random.choice(mid_regions)
-					elif i % 3 == 2:
-						labels['softmax_long_label'][i] = 0
-						mid2 = mid1 + numpy.random.choice(long_regions)
-
-					if mid2 >= regions[c][-1] or contact_dict.has_key((c, mid1, mid2)):
+					mid1, mid2 = numpy.random.choice(regions[c], 2)
+					if contact_dict.has_key((c, mid1, mid2)):
 						continue
 
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
@@ -217,8 +192,8 @@ class TrainingGenerator(DataIter):
 			data['x1dnase'] = data['x1dnase'].reshape(batch_size, 1, window, 8)
 			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 8)
 
-			data_list = [ array(data[key]) for key in self.data_shapes.keys() ]
-			label_list = [ array(labels['softmax_short_label']), array(labels['softmax_mid_label']), array(labels['softmax_long_label']) ]
+			data_list = [array(data[key]) for key in self.data_shapes.keys()]
+			label_list = [array(labels['softmax_label'])]
 			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
 
 		raise StopIteration
@@ -268,7 +243,7 @@ class ValidationGenerator(DataIter):
 	@property
 	def provide_label(self):
 		"""The name and shape of label provided by this iterator"""
-		return [('softmax_short_label', (self.batch_size,)), ('softmax_mid_label', (self.batch_size,)), ('softmax_long_label', (self.batch_size,))]
+		return [('softmax_label', (self.batch_size,))]
 
 	def __iter__(self):
 		cdef numpy.ndarray sequence = self.sequence
@@ -289,10 +264,7 @@ class ValidationGenerator(DataIter):
 				 'distance' : numpy.zeros((batch_size, 281))
 		}
 
-		labels = { 'softmax_short_label' : numpy.zeros(batch_size) - 1,
-				   'softmax_mid_label' : numpy.zeros(batch_size) - 1,
-				   'softmax_long_label' : numpy.zeros(batch_size) - 1 
-		}
+		labels = { 'softmax_label' : numpy.zeros(batch_size) }
 
 		j = 0
 		l = self.contacts.shape[0] - batch_size*2
@@ -311,25 +283,10 @@ class ValidationGenerator(DataIter):
 						continue
 
 				else:
-					mid1 = numpy.random.choice(self.regions)
-					if 25000 <= last_mid2 - last_mid1 <= 100000: 
-						mid2 = mid1 + numpy.random.choice(short_regions)
-					elif 100000 < last_mid2 - last_mid1 <= 1000000:
-						mid2 = mid1 + numpy.random.choice(mid_regions)
-					else:
-						mid2 = mid1 + numpy.random.choice(long_regions)
+					mid1, mid2 = numpy.random.choice(self.regions, 2)
+					mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
 
-					if mid2 >= self.regions[-1]:
-						continue
-
-				if 25000 <= mid2 - mid1 <= 100000:
-					labels['softmax_short_label'][i] = (i+1)%2
-				elif 100000 < mid2 - mid1 <= 1000000:
-					labels['softmax_mid_label'][i] = (i+1)%2
-				elif mid2 - mid1 > 1000000:
-					labels['softmax_long_label'][i] = (i+1)%2
-				else:
-					raise ValueError
+				labels['softmax_label'] = (i+1)%2
 
 				if self.use_seq:
 					data['x1seq'][i] = sequence[mid1-width:mid1+width]
@@ -357,8 +314,8 @@ class ValidationGenerator(DataIter):
 			data['x1dnase'] = data['x1dnase'].reshape(batch_size, 1, window, 8)
 			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 8)
 
-			data_list = [ array(data[key][:i]) for key in self.data_shapes.keys() ]
-			label_list = [ array(labels['softmax_short_label']), array(labels['softmax_mid_label']), array(labels['softmax_long_label']) ]
+			data_list = [array(data[key][:i]) for key in self.data_shapes.keys()]
+			label_list = [array(labels['softmax_label'])]
 			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
 
 	def reset(self):
@@ -533,73 +490,5 @@ def Rambutan(**kwargs):
 	x = Dense(x, 256)
 	x = mx.symbol.FullyConnected(x, num_hidden=2)
 	y = SoftmaxOutput(data=x, name='softmax')
-	model = mx.model.FeedForward(symbol=y, **kwargs)
-	return model
-
-def Arm(seq, dnase):
-	seq = Convolution(seq, 48, (7, 4), pad=(3, 0))
-	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
-	seq = Convolution(seq, 48, (7, 1), pad=(3, 0))
-	seq = Pooling(seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
-
-	dnase = Pooling(dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
-	dnase = Convolution(dnase, 12, (5, 8), pad=(2, 0))
-
-	x = Concat(seq, dnase)
-	x = Convolution(x, 48, (1, 1))
-	x = Flatten(Pooling(x, kernel=(108, 1), stride=(108, 1), pool_type='max'))
-	x = Dense(x, 256)
-	return x
-
-def Task(x1, x2, d, name):
-	x = Concat(x1, x2)
-	x = Dense(x, 128)
-	x = Concat(x, Dense(d, 32))
-	x = Dense(x, 128)
-	x = mx.symbol.FullyConnected(x, num_hidden=2)
-	y = SoftmaxOutput(data=x, name="softmax_{}".format(name), ignore_label=-1, use_ignore=True)
-	return y
-
-def MultiButan(**kwargs):
-	x1seq = Variable(name="x1seq")
-	x1dnase = Variable(name="x1dnase")
-
-	x2seq = Variable(name="x2seq")
-	x2dnase = Variable(name="x2dnase")
-
-	x1 = Arm(x1seq, x1dnase)
-	x2 = Arm(x2seq, x2dnase)
-
-	xd = Variable(name="distance")
-
-	y1 = Task(x1, x2, xd, "short")
-	y2 = Task(x1, x2, xd, "mid")
-	y3 = Task(x1, x2, xd, "long")
-
-	y = mx.symbol.Group([y1, y2, y3])
-	model = mx.model.FeedForward(symbol=y, **kwargs)
-	return model
-
-def IndButan(**kwargs):
-	x1seq = Variable(name="x1seq")
-	x1dnase = Variable(name="x1dnase")
-
-	x2seq = Variable(name="x2seq")
-	x2dnase = Variable(name="x2dnase")
-
-	x11 = Arm(x1seq, x1dnase)
-	x12 = Arm(x2seq, x2dnase)
-	x21 = Arm(x1seq, x1dnase)
-	x22 = Arm(x2seq, x2dnase)
-	x31 = Arm(x1seq, x1dnase)
-	x32 = Arm(x2seq, x2dnase)
-
-	xd = Variable(name="distance")
-
-	y1 = Task(x11, x12, xd, "short")
-	y2 = Task(x21, x22, xd, "mid")
-	y3 = Task(x31, x32, xd, "long")
-
-	y = mx.symbol.Group([y1, y2, y3])
 	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
