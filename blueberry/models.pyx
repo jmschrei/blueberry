@@ -37,30 +37,6 @@ random.seed(0)
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-class MultiAUC(mx.metric.EvalMetric):
-	"""Calculate accuracies of multi label"""
-
-	def __init__(self, num=None):
-		super(MultiAUC, self).__init__('multi-accuracy', num)
-
-	def update(self, labels, preds):
-		mx.metric.check_label_shapes(labels, preds)
-
-		for i, (y_true, y_pred) in enumerate(zip(labels, preds)):
-			y_pred = y_pred.asnumpy()[:,1]
-			y_true = y_true.asnumpy().astype('int32')
-
-			y_pred = y_pred[y_true != -1]
-			y_true = y_true[y_true != -1]
-
-			if y_true.shape[0] < 2:
-				pass
-			elif numpy.unique(y_true).shape[0] < 2:
-				pass 
-			else:
-				self.sum_metric[i] += roc_auc_score(y_true, y_pred)
-				self.num_inst[i] += 1
-
 def cross_celltype_dict( contacts ):
 	"""Take in a contact map and return a dictionary."""
 
@@ -166,7 +142,7 @@ class TrainingGenerator(DataIter):
 						continue
 
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
-				labels['softmax_label'] = (i+1)%2
+				labels['softmax_label'][i] = (i+1)%2
 
 				if self.use_seq:
 					data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
@@ -192,8 +168,8 @@ class TrainingGenerator(DataIter):
 			data['x1dnase'] = data['x1dnase'].reshape(batch_size, 1, window, 8)
 			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 8)
 
-			data_list = [array(data[key]) for key in self.data_shapes.keys()]
-			label_list = [array(labels['softmax_label'])]
+			data_list = [ array(data[key]) for key in self.data_shapes.keys() ]
+			label_list = [ array(labels['softmax_label']) ]
 			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
 
 	def reset(self):
@@ -275,7 +251,7 @@ class ValidationGenerator(DataIter):
 					mid1, mid2 = numpy.random.choice(self.regions, 2)
 					mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
 
-				labels['softmax_label'] = (i+1)%2
+				labels['softmax_label'][i] = (i+1)%2
 
 				if self.use_seq:
 					data['x1seq'][i] = sequence[mid1-width:mid1+width]
