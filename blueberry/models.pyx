@@ -137,8 +137,9 @@ class TrainingGenerator(DataIter):
 					k = numpy.random.randint(len(contacts))
 					c, mid1, mid2 = contacts[k, :3]
 				else:
-					mid1, mid2 = numpy.random.choice(regions[c], 2)
-					if contact_dict.has_key((c, mid1, mid2)):
+					mid1, mid2 = numpy.random.choice(self.regions, 2)
+					mid2 = mid1 + numpy.random.choice((self.max_dist - self.min_dist) / window) * window + self.min_dist
+					if mid2 > self.regions[c][-1] or contact_dict.has_key((c, mid1, mid2)):
 						continue
 
 				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
@@ -218,9 +219,7 @@ class ValidationGenerator(DataIter):
 		cdef int mid1, mid2, distance, width=window/2, last_mid1, last_mid2
 		cdef list data_list, label_list
 		cdef str key
-		cdef list short_regions = range(25000, 100000, 1000)
-		cdef list mid_regions = range(100000, 1000000, 1000)
-		cdef list long_regions = range(1000000, 10000000, 1000)
+		cdef 
 
 		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
@@ -249,7 +248,9 @@ class ValidationGenerator(DataIter):
 
 				else:
 					mid1, mid2 = numpy.random.choice(self.regions, 2)
-					mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
+					mid2 = mid1 + numpy.random.choice((self.max_dist - self.min_dist) / window) * window + self.min_dist
+					if mid2 > self.regions[c][-1]:
+						continue
 
 				labels['softmax_label'][i] = (i+1)%2
 
