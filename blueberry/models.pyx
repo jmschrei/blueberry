@@ -219,7 +219,6 @@ class ValidationGenerator(DataIter):
 		cdef int mid1, mid2, distance, width=window/2, last_mid1, last_mid2
 		cdef list data_list, label_list
 		cdef str key
-		cdef 
 
 		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
