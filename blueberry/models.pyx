@@ -100,7 +100,7 @@ class TrainingGenerator(DataIter):
 	"""
 	def __init__(self, sequences, dnases, contacts, regions, window, 
 		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
-		use_hist=True, min_dist=25000, max_dist=10000000, n_batches=500):
+		use_hist=True, min_dist=25000, max_dist=10000000):
 		super(TrainingGenerator, self).__init__()
 
 		self.sequence     = sequences
@@ -114,7 +114,6 @@ class TrainingGenerator(DataIter):
 		self.use_dist     = use_dist
 		self.min_dist     = min_dist
 		self.max_dist     = max_dist
-		self.n_batches    = n_batches
 
 		self.window = window
 		self.batch_size = batch_size
@@ -197,15 +196,6 @@ class TrainingGenerator(DataIter):
 			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
 
 		raise StopIteration
-
-	def iter_next(self):
-		print self.n_batches, self.cur
-		if self.cur == self.n_batches:
-			return False
-
-		self.current_batch = self.next()
-		self.cur += 1
-		return True
 
 	def reset(self):
 		pass
@@ -452,7 +442,6 @@ def Dense(x, num_hidden, act_type='relu'):
 def Rambutan(**kwargs):
 	x1seq = Variable(name="x1seq")
 	x1dnase = Variable(name="x1dnase")
-	x1hist = Variable(name="x1hist")
 
 	x1seq = Convolution(x1seq, 48, (7, 4))
 	x1seq = Pooling(x1seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
@@ -468,7 +457,6 @@ def Rambutan(**kwargs):
 
 	x2seq = Variable(name="x2seq")
 	x2dnase = Variable(name="x2dnase")
-	x2hist = Variable(name="x2hist")
 
 	x2seq = Convolution(x2seq, 48, (7, 4))
 	x2seq = Pooling(x2seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
