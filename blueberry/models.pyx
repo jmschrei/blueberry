@@ -137,7 +137,7 @@ class TrainingGenerator(DataIter):
 					k = numpy.random.randint(len(contacts))
 					c, mid1, mid2 = contacts[k, :3]
 				else:
-					mid1, mid2 = numpy.random.choice(self.regions, 2)
+					mid1 = numpy.random.choice(self.regions[c])
 					mid2 = mid1 + numpy.random.choice((self.max_dist - self.min_dist) / window) * window + self.min_dist
 					if mid2 > self.regions[c][-1] or contact_dict.has_key((c, mid1, mid2)):
 						continue
