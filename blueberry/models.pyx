@@ -427,7 +427,7 @@ def Rambutan(**kwargs):
 
 	x1 = Concat(x1seq, x1dnase)
 	x1 = Convolution(x1, 48, (3, 1))
-	x1 = Flatten(Pooling(x1, kernel=(110, 1), stride=(110, 1), pool_type='max'))
+	x1 = Flatten(Pooling(x1, kernel=(109, 1), stride=(109, 1), pool_type='max'))
 	x1 = Dense(x1, 256)
 
 	x2seq = Variable(name="x2seq")
