@@ -142,7 +142,6 @@ class TrainingGenerator(DataIter):
 					if mid2 > self.regions[c][-1] or contact_dict.has_key((c, mid1, mid2)):
 						continue
 
-				mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
 				labels['softmax_label'][i] = (i+1)%2
 
 				if self.use_seq:
@@ -424,10 +423,10 @@ def Rambutan(**kwargs):
 	x1seq = Flatten(Pooling(x1seq, kernel=(3, 1), stride=(3, 1), pool_type='max'))
 
 	x1dnase = Pooling(x1dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
-	x1dnase = Convolution(x1dnase, 3)
+	x1dnase = Convolution(x1dnase, 3, (1, 1))
 
 	x1 = Concat(x1seq, x1dnase)
-	x1 = Convolution(x1, 48, kernel=(3, 1), stride=(3, 1))
+	x1 = Convolution(x1, 48, (3, 1), stride=(3, 1))
 	x1 = Flatten(Pooling(x1, kernel=(38, 1), stride=(38, 1), pool_type='max'))
 	x1 = Dense(x1, 256)
 
@@ -440,7 +439,7 @@ def Rambutan(**kwargs):
 	x2seq = Flatten(Pooling(x2seq, kernel=(3, 1), stride=(3, 1), pool_type='max'))
 
 	x2dnase = Pooling(x2dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
-	x2dnase = Convolution(x2dnase, 3)
+	x2dnase = Convolution(x2dnase, 3, (1, 1))
 
 	x2 = Concat(x2seq, x2dnase)
 	x2 = Convolution(x2, 48, kernel=(3, 1), stride=(3, 1))
