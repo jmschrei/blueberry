@@ -450,11 +450,13 @@ def Rambutan(**kwargs):
 
 	xd = Variable(name="distance")
 	xd = Dense(xd, 64)
+	xd = mx.symbol.FullyConnected(xd, num_hidden=2)
 
-	x = Concat(x1, x2, xd)
+	x = Concat(x1, x2)
 	x = Dense(x, 128)
 	x = Dense(x, 128)
 	x = mx.symbol.FullyConnected(x, num_hidden=2)
+	x = x + xd
 	y = SoftmaxOutput(data=x, name='softmax')
 	model = mx.model.FeedForward(symbol=y, **kwargs)
 	return model
