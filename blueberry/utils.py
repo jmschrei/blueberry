@@ -74,7 +74,7 @@ def extract_contacts(celltype, chromosome, resolution, alpha=None, n_regions=Non
 
 	# Shift everything over by a column
 	contact[:,1:] = contact[:,:-1]
-	contact[:,0] = chromosome
+	contact[:,0] = chromosome - 1
 
 	# Calculate distances
 	distances = contact[:,2] - contact[:,1]
