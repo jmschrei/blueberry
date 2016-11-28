@@ -305,9 +305,9 @@ class FithicContactMap(object):
 		A numpy array storing (mid1, mid2, q, p) for each contact.
 	"""
 
-	def __init__(self, celltype, chromosome, resolution=1000):
+	def __init__(self, celltype, chromosome, resolution=1000, filename=None):
 		self.resolution = resolution
-		self.filename = DATA_DIR.format(celltype, chromosome, resolution)
+		self.filename = filename or DATA_DIR.format(celltype, chromosome, resolution)
 		self.chromosome = chromosome
 		self.celltype = celltype
 
