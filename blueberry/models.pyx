@@ -303,7 +303,7 @@ class MultiCelltypeTrainingGenerator(DataIter):
 	def __init__(self, sequences, dnases, contacts, regions, window, 
 		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
 		min_dist=25000, max_dist=10000000):
-		super(TrainingGenerator, self).__init__()
+		super(MultiCelltypeTrainingGenerator, self).__init__()
 
 		self.sequence     = sequences
 		self.dnases       = dnases
@@ -400,7 +400,7 @@ class MultiCelltypeTrainingGenerator(DataIter):
 	def reset(self):
 		pass
 
-class ValidationGenerator(DataIter):
+class MultiCelltypeValidationGenerator(DataIter):
 	"""Generator iterator, collects batches from a generator showing a full subset.
 
 	Use on only one chromosome for now."""
@@ -408,7 +408,7 @@ class ValidationGenerator(DataIter):
 	def __init__(self, sequence, dnase, contacts, regions, window, 
 		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
 		min_dist=25000, max_dist=10000000):
-		super(ValidationGenerator, self).__init__()
+		super(MultiCelltypeValidationGenerator, self).__init__()
 
 		self.sequence     = sequence
 		self.dnase        = dnase
