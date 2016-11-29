@@ -364,15 +364,15 @@ class MultiCelltypeTrainingGenerator(DataIter):
 					k = numpy.random.randint(len(contacts))
 					d, c, mid1, mid2 = contacts[k, :4]
 				else:
-					mid1 = numpy.random.choice(self.regions[d, c])
-					mid2 = mid1 + numpy.random.choice((self.max_dist - self.min_dist) / window) * window + self.min_dist
+					mid1 = int(numpy.random.choice(self.regions[d, c]))
+					mid2 = mid1 + int(numpy.random.choice((self.max_dist - self.min_dist) / window)) * window + self.min_dist
 					if mid2 > self.regions[d, c][-1] or contact_dict.has_key((d, c, mid1, mid2)):
 						continue
 
 				labels['softmax_label'][i] = (i+1)%2
 
 				if self.use_seq:
-					print d, c, sequence[c].shape, mid1, mid2
+					print i, d, c, sequence[c].shape, mid1, mid2
 					data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
 					data['x2seq'][i] = sequence[c][mid2-width:mid2+width]
 
