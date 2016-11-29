@@ -281,26 +281,47 @@ class ValidationGenerator(DataIter):
 	def reset(self):
 		pass
 
-class MultiCellTypeGenerator(DataIter):
-	"""Generator iterator, collects batches from a generator showing a full subset."""
+class MultiCelltypeTrainingGenerator(DataIter):
+	"""Generator iterator, collects batches from a generator.
 
-	def __init__(self, sequences, dnases, contacts, regions, window, batch_size=1):
-		super(MultiCellTypeGenerator, self).__init__()
+	Parameters
+	----------
+	data : generator
 
-		self.sequence      = sequences
-		self.dnases        = dnases
-		self.contacts      = contacts
-		self.contact_dict  = cross_celltype_dict(contacts)
-		self.regions       = regions
-		self.celltypes     = numpy.unique(contacts[:,0])
+	batch_size : int
+		Batch Size
 
-		self.m = self.celltypes.shape[0]
-		self.n = len(sequences)
+	last_batch_handle : 'pad', 'discard' or 'roll_over'
+		How to handle the last batch
+
+	Note
+	----
+	This iterator will pad, discard or roll over the last batch if
+	the size of data does not match batch_size. Roll over is intended
+	for training and can cause problems if used for prediction.
+	"""
+	def __init__(self, sequences, dnases, contacts, regions, window, 
+		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
+		min_dist=25000, max_dist=10000000):
+		super(TrainingGenerator, self).__init__()
+
+		self.sequence     = sequences
+		self.dnases       = dnases
+		self.contacts     = contacts
+		self.contact_dict = cross_chromosome_dict(contacts)
+		self.regions      = regions
+		self.n            = len(sequences)
+		self.use_seq      = use_seq
+		self.use_dnase    = use_dnase
+		self.use_dist     = use_dist
+		self.min_dist     = min_dist
+		self.max_dist     = max_dist
+		self.celltypes    = numpy.unique(contacts[:,0])
 
 		self.window = window
 		self.batch_size = batch_size
 		self.data_shapes = {'x1seq' : (1, window, 4), 'x2seq' : (1, window, 4), 
-			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (281,)}
+			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (191,)}
 
 	@property
 	def provide_data(self):
@@ -313,70 +334,57 @@ class MultiCellTypeGenerator(DataIter):
 		return [('softmax_label', (self.batch_size,))]
 
 	def __iter__(self):
-		cdef numpy.ndarray sequence   = self.sequence
-		cdef numpy.ndarray dnases     = self.dnases
-		cdef numpy.ndarray contacts   = self.contacts
-		cdef numpy.ndarray regions    = self.regions
-		cdef int window     = self.window
-		cdef int batch_size = self.batch_size
-		cdef int width      = int(window/2)
-		cdef dict contact_dict = self.contact_dict
-
-		cdef int i, l, c, d, mid1, mid2, distance, k
-		cdef dict data, labels
-		cdef str key
+		cdef numpy.ndarray sequence = self.sequence
+		cdef numpy.ndarray dnases = self.dnases
+		cdef numpy.ndarray contacts = self.contacts
+		cdef numpy.ndarray regions = self.regions
+		cdef numpy.ndarray x1dnase, x2dnase
+		cdef int window = self.window, batch_size = self.batch_size
+		cdef int i, c, k, mid1, mid2, distance, width = window/2, batch
+		cdef dict data, labels, contact_dict = self.contact_dict
 		cdef list data_list, label_list
 
 		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
 				 'x1dnase' : numpy.zeros((batch_size, window, 8)),
 				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
-				 'distance' : numpy.zeros((batch_size, 281)) }
+				 'distance' : numpy.zeros((batch_size, 29))}
 
 		labels = { 'softmax_label' : numpy.zeros(batch_size) }
 
 		while True:
 			data['x1seq'] = data['x1seq'].reshape(batch_size, window, 4)
 			data['x2seq'] = data['x2seq'].reshape(batch_size, window, 4)
-			data['x1dnase'] = data['x1dnase'].reshape(batch_size, window, 8)
-			data['x2dnase'] = data['x2dnase'].reshape(batch_size, window, 8)
+			data['x1dnase'] = data['x1dnase'].reshape(batch_size, window, 8) * 0
+			data['x2dnase'] = data['x2dnase'].reshape(batch_size, window, 8) * 0
 
-			l = contacts.shape[0]
 			i = 0
 			while i < batch_size:
 				if i % 2 == 0:
-					k = numpy.random.randint(l)
+					k = numpy.random.randint(len(contacts))
 					d, c, mid1, mid2 = contacts[k, :4]
-					if not (LOW_FITHIC_CUTOFF <= mid2 - mid1 <= HIGH_FITHIC_CUTOFF):
-						continue
-
 				else:
-					d = numpy.random.choice(self.celltypes)
-					c = numpy.random.randint(self.n)
-					if (d == 1 or d == 2) and c == 8:
+					mid1 = numpy.random.choice(self.regions[d, c])
+					mid2 = mid1 + numpy.random.choice((self.max_dist - self.min_dist) / window) * window + self.min_dist
+					if mid2 > self.regions[d, c][-1] or contact_dict.has_key((d, c, mid1, mid2)):
 						continue
-
-					while True:
-						mid1, mid2 = numpy.random.choice(regions[d, c], 2)
-						mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
-						if not contact_dict.has_key( (d, c, mid1, mid2) ):
-							break
 
 				labels['softmax_label'][i] = (i+1)%2
 
-				data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
-				data['x2seq'][i] = sequence[c][mid2-width:mid2+width]
+				if self.use_seq:
+					data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
+					data['x2seq'][i] = sequence[c][mid2-width:mid2+width]
 
-				data['x1dnase'][i] = dnases[d][c][mid1-width:mid1+width]
-				data['x2dnase'][i] = dnases[d][c][mid2-width:mid2+width]
+				if self.use_dnase:
+					data['x1dnase'][i] = dnases[c][mid1-width:mid1+width]
+					data['x2dnase'][i] = dnases[c][mid2-width:mid2+width]
 
-				distance = mid2 - mid1 - LOW_FITHIC_CUTOFF
-				for k in range(100):
-					data['distance'][i][k] = 1 if distance >= k*1000 else 0
-				for k in range(91):
-					data['distance'][i][k+100] = 1 if distance >= 100000 + k*10000 else 0
-				for k in range(91):
-					data['distance'][i][k+190] = 1 if distance >= 1000000 + k*100000 else 0
+				if self.use_dist:
+					distance = mid2 - mid1 - self.min_dist
+					for k in range(11):
+						data['distance'][i][k] = 1 if distance >= k*5000 else 0
+					for k in range(18):
+						data['distance'][i][k+11] = 1 if distance >= 100000 + k*50000 else 0
 
 				i += 1
 
@@ -391,7 +399,6 @@ class MultiCellTypeGenerator(DataIter):
 
 	def reset(self):
 		pass
-
 
 def Convolution(x, num_filter, kernel, stride=(1, 1), pad=(0, 0), act_type='relu'):
 	"""Create a convolution layer with batch normalization and relu activations."""
