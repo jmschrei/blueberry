@@ -22,8 +22,8 @@ from .datatypes import *
 
 Q_LOWER_BOUND = 0.01
 Q_UPPER_BOUND = 0.50
-HIGH_FITHIC_CUTOFF = 1000000
-LOW_FITHIC_CUTOFF = 50000
+HIGH_FITHIC_CUTOFF = 10000000
+LOW_FITHIC_CUTOFF = 25000
 DATA_DIR = "/net/noble/vol1/home/jmschr/proj/contact/data"
 DATA = lambda name: DATA_DIR + "/{}".format(name)
 
@@ -117,32 +117,6 @@ def negative_coordinate_pair(regions, contacts, min_dist=25000, max_dist=1000000
 
 	return mid1, mid2
 
-def balanced_random_sample( regions, contacts ):
-	"""Returns a balanced subset from the given contacts, regions, and restrictions.
-	Parameters
-	----------
-	regions : numpy.ndarray
-		Valid mappable regions in the chromosome.
-	contacts : dict
-		Pairs of contacts
-	Returns
-	-------
-	coordinates : numpy.ndarray, shape=(n_contacts*2, 2)
-		The coordinates for positive and negative samples
-	y : numpy.ndarray, shape=(n_contacts*2,)
-		Whether the coordinates indicate a contact or not.
-	"""
-
-	n = contacts.shape[0]
-	coordinates = numpy.zeros((n*2, 2))
-	y = numpy.concatenate((numpy.ones(n), numpy.zeros(n)))
-	contact_dict = contacts_to_hashmap(contacts)
-
-	coordinates[:n] = contacts
-	for i in range(n):
-		coordinates[i+n] = negative_coordinate_pair(regions, contact_dict)
-
-	return coordinates, y
 
 def plot_roc_pr(y_true, y_pred, labels, styles=None):
 	"""Plot a ROC and PR curve on the same plot.
