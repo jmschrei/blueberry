@@ -376,8 +376,8 @@ class MultiCelltypeTrainingGenerator(DataIter):
 					data['x2seq'][i] = sequence[c][mid2-width:mid2+width]
 
 				if self.use_dnase:
-					data['x1dnase'][i] = dnases[c][mid1-width:mid1+width]
-					data['x2dnase'][i] = dnases[c][mid2-width:mid2+width]
+					data['x1dnase'][i] = dnases[d, c][mid1-width:mid1+width]
+					data['x2dnase'][i] = dnases[d, c][mid2-width:mid2+width]
 
 				if self.use_dist:
 					distance = mid2 - mid1 - self.min_dist
