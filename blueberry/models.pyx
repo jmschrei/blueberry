@@ -321,7 +321,7 @@ class MultiCelltypeTrainingGenerator(DataIter):
 		self.window = window
 		self.batch_size = batch_size
 		self.data_shapes = {'x1seq' : (1, window, 4), 'x2seq' : (1, window, 4), 
-			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (191,)}
+			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (29,)}
 
 	@property
 	def provide_data(self):
@@ -423,7 +423,7 @@ class MultiCelltypeValidationGenerator(DataIter):
 		self.window = window
 		self.batch_size = batch_size
 		self.data_shapes = {'x1seq' : (1, window, 4), 'x2seq' : (1, window, 4), 
-			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (191,)}
+			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (29,)}
 
 	@property
 	def provide_data(self):
