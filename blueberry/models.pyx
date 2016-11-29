@@ -41,17 +41,17 @@ def cross_celltype_dict( contacts ):
 	"""Take in a contact map and return a dictionary."""
 
 	d = {}
-	for celltype, chromosome, mid1, mid2, p in contacts:
-		d[celltype, chromosome, mid1, mid2] = p
-		d[celltype, chromosome, mid2, mid1] = p
+	for celltype, chromosome, mid1, mid2, q in contacts:
+		d[celltype, chromosome, mid1, mid2] = q
+		d[celltype, chromosome, mid2, mid1] = q
 
 	return d
 
 def cross_chromosome_dict(contacts):
 	d = {}
-	for chromosome, mid1, mid2, p in contacts:
-		d[chromosome, mid1, mid2] = p
-		d[chromosome, mid2, mid1] = p
+	for chromosome, mid1, mid2, q in contacts:
+		d[chromosome, mid1, mid2] = q
+		d[chromosome, mid2, mid1] = q
 
 	return d
 
@@ -308,7 +308,7 @@ class MultiCelltypeTrainingGenerator(DataIter):
 		self.sequence     = sequences
 		self.dnases       = dnases
 		self.contacts     = contacts
-		self.contact_dict = cross_chromosome_dict(contacts)
+		self.contact_dict = cross_celltype_dict(contacts)
 		self.regions      = regions
 		self.n            = len(sequences)
 		self.use_seq      = use_seq
