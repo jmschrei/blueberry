@@ -372,6 +372,7 @@ class MultiCelltypeTrainingGenerator(DataIter):
 				labels['softmax_label'][i] = (i+1)%2
 
 				if self.use_seq:
+					print d, c, sequence[c].shape, mid1, mid2
 					data['x1seq'][i] = sequence[c][mid1-width:mid1+width]
 					data['x2seq'][i] = sequence[c][mid2-width:mid2+width]
 
