@@ -400,6 +400,114 @@ class MultiCelltypeTrainingGenerator(DataIter):
 	def reset(self):
 		pass
 
+class ValidationGenerator(DataIter):
+	"""Generator iterator, collects batches from a generator showing a full subset.
+
+	Use on only one chromosome for now."""
+
+	def __init__(self, sequence, dnase, contacts, regions, window, 
+		batch_size=1024, use_seq=True, use_dnase=True, use_dist=True, 
+		min_dist=25000, max_dist=10000000):
+		super(ValidationGenerator, self).__init__()
+
+		self.sequence     = sequence
+		self.dnase        = dnase
+		self.contacts     = contacts
+		self.regions      = regions
+		self.use_seq      = use_seq
+		self.use_dnase    = use_dnase
+		self.use_dist     = use_dist
+		self.min_dist     = min_dist
+		self.max_dist     = max_dist
+
+		self.window = window
+		self.batch_size = batch_size
+		self.data_shapes = {'x1seq' : (1, window, 4), 'x2seq' : (1, window, 4), 
+			'x1dnase' : (1, window, 8), 'x2dnase' : (1, window, 8), 'distance' : (191,)}
+
+	@property
+	def provide_data(self):
+		"""The name and shape of data provided by this iterator"""
+		return [(k, tuple([self.batch_size] + list(v))) for k, v in self.data_shapes.items()]
+
+	@property
+	def provide_label(self):
+		"""The name and shape of label provided by this iterator"""
+		return [('softmax_label', (self.batch_size,))]
+
+	def __iter__(self):
+		cdef numpy.ndarray sequence = self.sequence
+		cdef numpy.ndarray dnase = self.dnase
+		cdef numpy.ndarray contacts = self.contacts
+		cdef dict data, labels
+		cdef int i, j = 0, k, batch_size = self.batch_size, window = self.window, l
+		cdef int mid1, mid2, distance, width=window/2, last_mid1, last_mid2
+		cdef list data_list, label_list
+		cdef str key
+
+		data = { 'x1seq' : numpy.zeros((batch_size, window, 4)),
+				 'x2seq' : numpy.zeros((batch_size, window, 4)),
+				 'x1dnase' : numpy.zeros((batch_size, window, 8)),
+				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
+				 'distance' : numpy.zeros((batch_size, 29))
+		}
+
+		labels = { 'softmax_label' : numpy.zeros(batch_size) }
+
+		l = self.contacts.shape[0] - batch_size*2
+		for j in range(100):
+			data['x1seq'] = data['x1seq'].reshape(batch_size, window, 4)
+			data['x2seq'] = data['x2seq'].reshape(batch_size, window, 4)
+			data['x1dnase'] = data['x1dnase'].reshape(batch_size, window, 8)
+			data['x2dnase'] = data['x2dnase'].reshape(batch_size, window, 8)
+
+			i = 0
+			while i < batch_size:
+				if i % 2 == 0:
+					k = numpy.random.randint(len(contacts))
+					d, c, mid1, mid2 = contacts[k, :4]
+					if not (self.min_dist <= mid2 - mid1 <= self.max_dist) and j < l:
+						continue
+
+				else:
+					mid1, mid2 = numpy.random.choice(self.regions, 2)
+					mid2 = mid1 + numpy.random.choice((self.max_dist - self.min_dist) / window) * window + self.min_dist
+					if mid2 > self.regions[-1]:
+						continue
+
+				labels['softmax_label'][i] = (i+1)%2
+
+				if self.use_seq:
+					data['x1seq'][i] = sequence[mid1-width:mid1+width]
+					data['x2seq'][i] = sequence[mid2-width:mid2+width]
+
+				if self.use_dnase:
+					data['x1dnase'][i] = dnase[mid1-width:mid1+width]
+					data['x2dnase'][i] = dnase[mid2-width:mid2+width]
+
+				if self.use_dist:
+					distance = mid2 - mid1 - self.min_dist
+					for k in range(11):
+						data['distance'][i][k] = 1 if distance >= k*5000 else 0
+					for k in range(18):
+						data['distance'][i][k+11] = 1 if distance >= 100000 + k*50000 else 0
+
+				i += 1
+				last_mid1 = mid1
+				last_mid2 = mid2
+
+			data['x1seq'] = data['x1seq'].reshape(batch_size, 1, window, 4)
+			data['x2seq'] = data['x2seq'].reshape(batch_size, 1, window, 4)
+			data['x1dnase'] = data['x1dnase'].reshape(batch_size, 1, window, 8)
+			data['x2dnase'] = data['x2dnase'].reshape(batch_size, 1, window, 8)
+
+			data_list = [array(data[key][:i]) for key in self.data_shapes.keys()]
+			label_list = [array(labels['softmax_label'])]
+			yield DataBatch(data=data_list, label=label_list, pad=0, index=None)
+
+	def reset(self):
+		pass
+
 def Convolution(x, num_filter, kernel, stride=(1, 1), pad=(0, 0), act_type='relu'):
 	"""Create a convolution layer with batch normalization and relu activations."""
 
