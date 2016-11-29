@@ -340,7 +340,7 @@ class MultiCelltypeTrainingGenerator(DataIter):
 		cdef numpy.ndarray regions = self.regions
 		cdef numpy.ndarray x1dnase, x2dnase
 		cdef int window = self.window, batch_size = self.batch_size
-		cdef int i, c, k, mid1, mid2, distance, width = window/2, batch
+		cdef int i, d, c, k, mid1, mid2, distance, width = window/2, batch
 		cdef dict data, labels, contact_dict = self.contact_dict
 		cdef list data_list, label_list
 
@@ -364,9 +364,10 @@ class MultiCelltypeTrainingGenerator(DataIter):
 					k = numpy.random.randint(len(contacts))
 					d, c, mid1, mid2 = contacts[k, :4]
 				else:
-					mid1 = int(numpy.random.choice(self.regions[d, c]))
+					mid1 = int(numpy.random.choice(self.regions[d][c]))
 					mid2 = mid1 + int(numpy.random.choice((self.max_dist - self.min_dist) / window)) * window + self.min_dist
-					if mid2 > self.regions[d, c][-1] or contact_dict.has_key((d, c, mid1, mid2)):
+					print i, d, c, sequence[c].shape, mid1, mid2, self.regions[d][c][-1]
+					if mid2 > self.regions[d][c][-1] or contact_dict.has_key((d, c, mid1, mid2)):
 						continue
 
 				labels['softmax_label'][i] = (i+1)%2
