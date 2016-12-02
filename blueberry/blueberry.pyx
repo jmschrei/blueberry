@@ -7,13 +7,8 @@ in a flexible manner.
 """
 
 from libc.math cimport exp
-
 cimport numpy
 import numpy
-from scipy.sparse import csr_matrix, lil_matrix
-from scipy import io
-
-
 import random, time, os, gzip
 from .utils import *
 
@@ -93,12 +88,39 @@ cpdef count_band_regions( numpy.ndarray regions_ndarray ):
 
 	return t
 
-def predict(name, iteration, ctx, n_jobs, bint use_seq=True, bint use_dnase=True, 
-	bint use_dist=True, int min_dist=25000, int max_dist=10000000, batch_size=10240):
+def predict(name, iteration, celltype='GM12878', use_seq=True, 
+	use_dnase=True, use_dist=True, min_dist=25000, max_dist=1000000, 
+	batch_size=10240):
+
+	ctxs = [0, 1, 2, 3]
+
+	Parallel(n_jobs=n_jobs)( delayed(predict_task)(name, iteration, ctx, 4, 
+		use_seq, use_dnase use_dist, min_dist, max_dist, batch_size) for ctx in ctxs)
+
+	width = 500
+	n = numpy.load('chr21.pred.npy', mmap_mode='r').shape[0]
+	y = numpy.zeros((n, n))
+
+	for ctx in ctxs:
+		with open('{}-{}-predictions-{}.txt'.format(name, iteration, ctx), 'r') as infile:
+			for line in infile:
+				mid1, mid2, p = line.split()
+				mid1 = (int(float(mid1)) - width) / resolution
+				mid2 = (int(float(mid2)) - width) / resolution
+				p = float(p)
+
+				y[mid1, mid2] = p
+
+	os.system('rm {}-{}-{}-*-predictions.txt'.format(name, iteration, celltype))
+	numpy.save(outfile, y)
+	
+
+def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=True, bint use_dnase=True, 
+	bint use_dist=True, int min_dist=25000, int max_dist=1000000, batch_size=10240):
 	cdef int window = 1000, width = 500
 	cdef int k = 0, tot = 0, i, j, l, mid1, mid2
 	cdef numpy.ndarray sequence = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.ohe.npy')
-	cdef numpy.ndarray dnase = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.ohe_dnase.npy')
+	cdef numpy.ndarray dnase = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.{}.ohe_dnase.npy'.format(celltype))
 	cdef numpy.ndarray regions = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.regions.1000.npy').astype('int')
 	cdef numpy.ndarray predictions = numpy.zeros((batch_size, 3), dtype='float32')
 	cdef int n = regions.shape[0]
@@ -107,7 +129,7 @@ def predict(name, iteration, ctx, n_jobs, bint use_seq=True, bint use_dnase=True
 	model = mx.model.FeedForward.load(name, iteration, ctx=mx.gpu(ctx))
 	print "GPU [{}] -- model loaded".format(ctx)
 
-	with open('{}-{}-predictions-{}.txt'.format(name, iteration, ctx), 'w') as outfile:
+	with open('{}-{}-{}-{}-predictions.txt'.format(name, iteration, celltype, ctx), 'w') as outfile:
 		for mid1 in regions:
 			for mid2 in regions[ctx::n_jobs]:
 				if not min_dist <= mid2 - mid1 <= max_dist:
@@ -160,33 +182,11 @@ def predict(name, iteration, ctx, n_jobs, bint use_seq=True, bint use_dnase=True
 					data['x1dnase'] = data['x1dnase'].reshape((batch_size, window, 8))
 					data['x2dnase'] = data['x2dnase'].reshape((batch_size, window, 8))
 					
-					for l, distance in enumerate(predictions[:,1] - predictions[:,0]):
-						if 25000 <= distance <= 100000:
-							predictions[l, 2] = y[0][l, 1]
-						elif 100000 < distance <= 1000000:
-							predictions[l, 2] = y[1][l, 1]
-						elif 1000000 < distance <= 10000000:
-							predictions[l, 2] = y[2][l, 1]
-
+					predictions[:,2] = y[:,1]
 					for mid1, mid2, y in predictions:
-						outfile.write("{} {} {}\n".format(mid1, mid2, y))
+						outfile.write( "{} {} {}\n".format(mid1, mid2, y) )
+
+					predictions *= 0
 
 					print
 					print "GPU [{}] -- {} samples predicted and output".format(ctx, tot)
-
-def merge_results(name, iteration, ctxs, resolution, outfile):
-	width = resolution / 2
-	n = numpy.load('chr21.pred.npy', mmap_mode='r').shape[0]
-	y = numpy.zeros((n, n))
-
-	for ctx in ctxs:
-		with open('{}-{}-predictions-{}.txt'.format(name, iteration, ctx), 'r') as infile:
-			for line in infile:
-				mid1, mid2, p = line.split()
-				mid1 = (int(float(mid1)) - width) / resolution
-				mid2 = (int(float(mid2)) - width) / resolution
-				p = float(p)
-
-				y[mid1, mid2] = p
-
-	numpy.save(outfile, y)
