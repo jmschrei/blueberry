@@ -96,7 +96,7 @@ def predict(name, iteration, celltype='GM12878', use_seq=True,
 
 	ctxs = [0, 1, 2, 3]
 
-	Parallel(n_jobs=n_jobs)( delayed(predict_task)(name, iteration, ctx, 4, 
+	Parallel(n_jobs=4)( delayed(predict_task)(name, iteration, ctx, 4, 
 		use_seq, use_dnase, use_dist, min_dist, max_dist, batch_size) for ctx in ctxs)
 
 	width = 500
