@@ -12,6 +12,8 @@ import numpy
 import random, time, os, gzip
 from .utils import *
 
+from joblib import Parallel, delayed
+
 random.seed(0)
 numpy.random.seed(0)
 
