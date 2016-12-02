@@ -99,6 +99,7 @@ def predict(name, iteration, celltype='GM12878', use_seq=True,
 	Parallel(n_jobs=4)( delayed(predict_task)(name, iteration, ctx, 4, celltype,
 		use_seq, use_dnase, use_dist, min_dist, max_dist, batch_size) for ctx in ctxs)
 
+	resolution = 1000
 	width = 500
 	n = numpy.load('chr21.pred.npy', mmap_mode='r').shape[0]
 	y = numpy.zeros((n, n))
