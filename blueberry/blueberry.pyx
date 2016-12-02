@@ -125,9 +125,9 @@ def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=
 	cdef numpy.ndarray predictions = numpy.zeros((batch_size, 3), dtype='float32')
 	cdef int n = regions.shape[0]
 
-	print "GPU [{}] -- data loaded".format(ctx)
+	print "GPU [{}] [{}] -- data loaded".format(celltype, ctx)
 	model = mx.model.FeedForward.load(name, iteration, ctx=mx.gpu(ctx))
-	print "GPU [{}] -- model loaded".format(ctx)
+	print "GPU [{}] [{}] -- model loaded".format(celltype, ctx)
 
 	with open('{}-{}-{}-{}-predictions.txt'.format(name, iteration, celltype, ctx), 'w') as outfile:
 		for mid1 in regions:
@@ -157,8 +157,6 @@ def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=
 							data['distance'][k][l] = 1 if distance >= l*1000 else 0
 						for l in range(91):
 							data['distance'][k][l+100] = 1 if distance >= 100000 + l*10000 else 0
-						for l in range(91):
-							data['distance'][k][l+190] = 1 if distance >= 1000000 + l*100000 else 0
 
 					predictions[k, 0] = mid1
 					predictions[k, 1] = mid2
@@ -167,7 +165,7 @@ def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=
 					tot += 1
 
 				else:
-					print "GPU [{}] -- {} samples loaded, predicting...".format(ctx, k),
+					print "GPU [{}] [{}] -- {} samples loaded, predicting...".format(celltype, ctx, k),
 					data['x1seq'] = data['x1seq'].reshape((batch_size, 1, window, 4))
 					data['x2seq'] = data['x2seq'].reshape((batch_size, 1, window, 4))
 					data['x1dnase'] = data['x1dnase'].reshape((batch_size, 1, window, 8))
@@ -189,4 +187,4 @@ def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=
 					predictions *= 0
 
 					print
-					print "GPU [{}] -- {} samples predicted and output".format(ctx, tot)
+					print "GPU [{}] [{}] -- {} samples predicted and output".format(celltype, ctx, tot)
