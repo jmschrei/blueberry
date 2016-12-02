@@ -115,7 +115,7 @@ def predict(name, iteration, celltype='GM12878', use_seq=True,
 				y[mid1, mid2] = p
 
 	os.system('rm {}-{}-{}-*-predictions.txt'.format(name, iteration, celltype))
-	numpy.save(outfile, y)
+	numpy.save("chr21.{}.y_pred.1000.npy".format(celltype), y)
 	
 
 def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=True, bint use_dnase=True, 
