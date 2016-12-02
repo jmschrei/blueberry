@@ -94,10 +94,10 @@ def predict(name, iteration, celltype='GM12878', use_seq=True,
 	use_dnase=True, use_dist=True, min_dist=50000, max_dist=1000000, 
 	batch_size=10240):
 
-	ctxs = [0, 1, 2, 3]
+	#ctxs = [0, 1, 2, 3]
 
-	Parallel(n_jobs=4)( delayed(predict_task)(name, iteration, ctx, 4, celltype,
-		use_seq, use_dnase, use_dist, min_dist, max_dist, batch_size) for ctx in ctxs)
+	#Parallel(n_jobs=4)( delayed(predict_task)(name, iteration, ctx, 4, celltype,
+	#	use_seq, use_dnase, use_dist, min_dist, max_dist, batch_size) for ctx in ctxs)
 
 	resolution = 1000
 	width = 500
