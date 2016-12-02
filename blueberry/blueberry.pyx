@@ -104,7 +104,7 @@ def predict(name, iteration, celltype='GM12878', use_seq=True,
 	y = numpy.zeros((n, n))
 
 	for ctx in ctxs:
-		with open('{}-{}-predictions-{}.txt'.format(name, iteration, ctx), 'r') as infile:
+		with open('{}-{}-{}-{}-predictions.txt'.format(name, iteration, celltype, ctx), 'r') as infile:
 			for line in infile:
 				mid1, mid2, p = line.split()
 				mid1 = (int(float(mid1)) - width) / resolution
@@ -172,17 +172,16 @@ def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=
 					data['x2seq'] = data['x2seq'].reshape((batch_size, 1, window, 4))
 					data['x1dnase'] = data['x1dnase'].reshape((batch_size, 1, window, 8))
 					data['x2dnase'] = data['x2dnase'].reshape((batch_size, 1, window, 8))
-					print "GPU [{}] [{}] -- {} samples loaded, predicting...".format(celltype, ctx, k),
 
 					X = mx.io.NDArrayIter(data, batch_size=1024)
 					y = model.predict(X)
 					k = 0
-					print "GPU [{}] [{}] -- {} samples loaded, predicting...".format(celltype, ctx, k),
+
 					data['x1seq'] = data['x1seq'].reshape((batch_size, window, 4))
 					data['x2seq'] = data['x2seq'].reshape((batch_size, window, 4))
 					data['x1dnase'] = data['x1dnase'].reshape((batch_size, window, 8))
 					data['x2dnase'] = data['x2dnase'].reshape((batch_size, window, 8))
-					print "GPU [{}] [{}] -- {} samples loaded, predicting...".format(celltype, ctx, k),
+
 					predictions[:,2] = y[:,1]
 					for mid1, mid2, y in predictions:
 						outfile.write( "{} {} {}\n".format(mid1, mid2, y) )
