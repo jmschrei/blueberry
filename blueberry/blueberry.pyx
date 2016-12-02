@@ -91,7 +91,7 @@ cpdef count_band_regions( numpy.ndarray regions_ndarray ):
 	return t
 
 def predict(name, iteration, celltype='GM12878', use_seq=True, 
-	use_dnase=True, use_dist=True, min_dist=25000, max_dist=1000000, 
+	use_dnase=True, use_dist=True, min_dist=50000, max_dist=1000000, 
 	batch_size=10240):
 
 	ctxs = [0, 1, 2, 3]
@@ -118,7 +118,7 @@ def predict(name, iteration, celltype='GM12878', use_seq=True,
 	
 
 def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=True, bint use_dnase=True, 
-	bint use_dist=True, int min_dist=25000, int max_dist=1000000, batch_size=10240):
+	bint use_dist=True, int min_dist=50000, int max_dist=1000000, batch_size=10240):
 	cdef int window = 1000, width = 500
 	cdef int k = 0, tot = 0, i, j, l, mid1, mid2
 	cdef numpy.ndarray sequence = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.ohe.npy')
