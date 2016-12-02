@@ -105,7 +105,7 @@ def predict(name, iteration, celltype='GM12878', use_seq=True,
 	y = numpy.zeros((n, n))
 
 	for ctx in ctxs:
-		with open('{}-{}-{}-{}-predictions.txt'.format(name, iteration celltype, ctx), 'r') as infile:
+		with open('{}-{}-{}-{}-predictions.txt'.format(name, iteration, celltype, ctx), 'r') as infile:
 			for line in infile:
 				mid1, mid2, p = line.split()
 				mid1 = (int(float(mid1)) - width) / resolution
