@@ -96,8 +96,8 @@ def predict(name, iteration, celltype='GM12878', use_seq=True,
 
 	ctxs = [0, 1, 2, 3]
 
-	#Parallel(n_jobs=4)( delayed(predict_task)(name, iteration, ctx, 4, celltype,
-	#	use_seq, use_dnase, use_dist, min_dist, max_dist, batch_size) for ctx in ctxs)
+	Parallel(n_jobs=4)( delayed(predict_task)(name, iteration, ctx, 4, celltype,
+		use_seq, use_dnase, use_dist, min_dist, max_dist, batch_size) for ctx in ctxs)
 
 	resolution = 1000
 	width = 500
@@ -105,7 +105,7 @@ def predict(name, iteration, celltype='GM12878', use_seq=True,
 	y = numpy.zeros((n, n))
 
 	for ctx in ctxs:
-		with open('{}-{}-{}-{}-predictions.txt'.format(name, iteration, celltype, ctx), 'r') as infile:
+		with open('{}-{}-{}-{}-predictions.txt'.format(name, iteration celltype, ctx), 'r') as infile:
 			for line in infile:
 				mid1, mid2, p = line.split()
 				mid1 = (int(float(mid1)) - width) / resolution
@@ -114,9 +114,8 @@ def predict(name, iteration, celltype='GM12878', use_seq=True,
 
 				y[mid1, mid2] = p
 
-	os.system('rm {}-{}-{}-*-predictions.txt'.format(name, iteration, celltype))
 	numpy.save("chr21.{}.y_pred.1000.npy".format(celltype), y)
-	
+	os.system('rm {}-{}-{}-*-predictions.txt'.format(name, iteration, celltype))	
 
 def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=True, bint use_dnase=True, 
 	bint use_dist=True, int min_dist=50000, int max_dist=1000000, batch_size=10240):
