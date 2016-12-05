@@ -92,7 +92,7 @@ cpdef count_band_regions( numpy.ndarray regions_ndarray ):
 
 cpdef numpy.ndarray downsample(numpy.ndarray x, numpy.ndarray regions,
 	int min_dist=50000, int max_dist=1000000):
-	cdef int mid1, mid2, i, j, k, k1, k2, l1, l2
+	cdef int mid1, mid2, i, j, k1, k2, l1, l2
 	cdef numpy.ndarray y = numpy.zeros((9626, 9626))
 
 	for mid1 in regions:
@@ -108,7 +108,6 @@ cpdef numpy.ndarray downsample(numpy.ndarray x, numpy.ndarray regions,
 						y[l1, l2] = max(y[l1, l2], x[k1 + i, k2 + j])
 
 	return y
-
 
 def predict(name, iteration, celltype='GM12878', use_seq=True, 
 	use_dnase=True, use_dist=True, min_dist=50000, max_dist=1000000, 
