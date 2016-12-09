@@ -80,8 +80,8 @@ cdef class ContactMap(object):
 	cdef public int chromosome
 	cdef public str filename
 	cdef public str celltype
-	cdef numpy.ndarray KRnorm
-	cdef numpy.ndarray KRexpected
+	cdef public numpy.ndarray KRnorm
+	cdef public numpy.ndarray KRexpected
 	cdef public numpy.ndarray matrix
 	cdef public numpy.ndarray regions 
 

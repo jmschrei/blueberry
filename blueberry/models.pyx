@@ -121,7 +121,7 @@ class TrainingGenerator(DataIter):
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
 				 'x1dnase' : numpy.zeros((batch_size, window, 8)),
 				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
-				 'distance' : numpy.zeros((batch_size, 191))}
+				 'distance' : numpy.ones((batch_size, 191))}
 
 		labels = { 'softmax_label' : numpy.zeros(batch_size) }
 
@@ -155,9 +155,9 @@ class TrainingGenerator(DataIter):
 				if self.use_dist:
 					distance = mid2 - mid1 - self.min_dist
 					for k in range(100):
-						data['distance'][i][k] = 1 if distance >= k*1000 else 0
+						data['distance'][i][k] = 0 if distance >= k*1000 else 1
 					for k in range(91):
-						data['distance'][i][k+100] = 1 if distance >= 100000 + k*10000 else 0
+						data['distance'][i][k+100] = 0 if distance >= 100000 + k*10000 else 1
 
 				i += 1
 
@@ -221,7 +221,7 @@ class ValidationGenerator(DataIter):
 				 'x2seq' : numpy.zeros((batch_size, window, 4)),
 				 'x1dnase' : numpy.zeros((batch_size, window, 8)),
 				 'x2dnase' : numpy.zeros((batch_size, window, 8)),
-				 'distance' : numpy.zeros((batch_size, 191))
+				 'distance' : numpy.ones((batch_size, 191))
 		}
 
 		labels = { 'softmax_label' : numpy.zeros(batch_size) }
@@ -261,9 +261,9 @@ class ValidationGenerator(DataIter):
 				if self.use_dist:
 					distance = mid2 - mid1 - self.min_dist
 					for k in range(100):
-						data['distance'][i][k] = 1 if distance >= k*1000 else 0
+						data['distance'][i][k] = 0 if distance >= k*1000 else 1
 					for k in range(91):
-						data['distance'][i][k+100] = 1 if distance >= 100000 + k*10000 else 0
+						data['distance'][i][k+100] = 0 if distance >= 100000 + k*10000 else 1
 
 				i += 1
 				last_mid1 = mid1
