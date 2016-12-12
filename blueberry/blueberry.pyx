@@ -37,6 +37,20 @@ cpdef numpy.ndarray translate( numpy.ndarray sequence, dict mapping ):
 
 	return ohe_sequence
 
+cpdef insulation_score(numpy.ndarray y_pred, int size=100):
+	cdef numpy.ndarray y = numpy.zeros(y_pred.shape[0])
+	cdef int i, j, k
+
+	for i in range(9626):
+		for j in range(-size, size+1):
+			for k in range(j, size+1):
+				try:
+					y[i] += y_pred[i+j, i+k]
+	            except:
+	            	pass
+
+	return y
+
 def benjamini_hochberg(numpy.ndarray p_values, long n):
 	"""Run the benjamini hochberg procedure on a vector of -sorted- p-values.
 
