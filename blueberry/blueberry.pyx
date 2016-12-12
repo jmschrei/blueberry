@@ -42,8 +42,10 @@ cpdef insulation_score(numpy.ndarray y_pred, int size=100):
 	cdef numpy.ndarray y = numpy.zeros(n)
 	cdef numpy.ndarray sums = y_pred.sum(axis=0)
 
-	for i in range(0, n):
+	for i in range(n):
+		print i
 		if sums[i] > 0:
+			print "a"
 			for j in range(-size, size+1):
 				if j >= n:
 					break
