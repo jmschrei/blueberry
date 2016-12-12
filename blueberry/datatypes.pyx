@@ -94,28 +94,23 @@ cdef class ContactMap(object):
 		self.KRnorm = numpy.loadtxt(KR_NORM.format(celltype, chromosome, resolution/1000))
 		self.KRexpected = numpy.loadtxt(KR_EXP.format(celltype, chromosome, resolution/1000))
 		self.n_bins = self.KRnorm.shape[0]
-		cdef int d = self.n_bins+1
 
-		cdef numpy.ndarray matrix = numpy.zeros((d, d), dtype='float64')
+		cdef int i, mid1, mid2, contactCount, d = self.n_bins, n
 		cdef numpy.ndarray data = pandas.read_csv(self.filename, delimiter="\t", engine='c', 
 												  dtype='float64', header=None).values
 		data = numpy.nan_to_num(data)
-		cdef int n = data.shape[0]
+		n = data.shape[0]
 
-		cdef double* data_ptr = <double*> data.data
-		cdef double* matrix_ptr = <double*> matrix.data
-		cdef int i, j, k
-		cdef double contactCount
+		self.matrix = numpy.zeros((d, d), dtype='float64')
 
 		for i in range(n):
-			j = data_ptr[i] / resolution
-			k = data_ptr[n+i] / resolution
-			contactCount = data_ptr[2*n+i]
+			mid1 = (data[i, 0] - resolution/2) / resolution
+			mid2 = (data[i, 1] - resolution/2) / resolution
+			contactCount = data[i, 2] 
 
-			matrix_ptr[j*d + k] = contactCount
-			matrix_ptr[k*d + j] = contactCount
+			self.matrix[mid1, mid2] = contactCount
+			self.matrix[mid2, mid1] = contactCount
 
-		self.matrix = matrix
 		self.regions = numpy.union1d(data[:,0], data[:,1])
 		self.regions.sort()
 
