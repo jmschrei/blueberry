@@ -38,16 +38,16 @@ cpdef numpy.ndarray translate( numpy.ndarray sequence, dict mapping ):
 	return ohe_sequence
 
 cpdef insulation_score(numpy.ndarray y_pred, int size=100):
-	cdef numpy.ndarray y = numpy.zeros(y_pred.shape[0])
-	cdef int i, j, k
+	cdef int i, j, k, n = y_pred.shape[0]
+	cdef numpy.ndarray y = numpy.zeros(n)
 
-	for i in range(9626):
+	for i in range(size, n):
 		for j in range(-size, size+1):
 			for k in range(j, size+1):
-				try:
-					y[i] += y_pred[i+j, i+k]
-				except:
-					pass
+				if j >= n or i >= n:
+					continue
+					
+				y[i] += y_pred[i+j, i+k]
 
 	return y
 
