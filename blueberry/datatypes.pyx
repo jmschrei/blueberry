@@ -104,8 +104,8 @@ cdef class ContactMap(object):
 		self.matrix = numpy.zeros((d, d), dtype='float64')
 
 		for i in range(n):
-			mid1 = (data[i, 0] - resolution/2) / resolution
-			mid2 = (data[i, 1] - resolution/2) / resolution
+			mid1 = data[i, 0] / resolution
+			mid2 = data[i, 1] / resolution
 			contactCount = data[i, 2] 
 
 			self.matrix[mid1, mid2] = contactCount
