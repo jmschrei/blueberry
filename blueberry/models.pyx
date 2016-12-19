@@ -324,7 +324,7 @@ def Rambutan(**kwargs):
 	x2seq = Pooling(x2seq, kernel=(3, 1), stride=(3, 1), pool_type='max')
 
 	x2dnase = Pooling(x2dnase, kernel=(9, 1), stride=(9, 1), pool_type='max')
-	x2dnase = Convolution(x2dnase, 1, (1, 8))
+	x2dnase = Convolution(x2dnase, 8, (1, 8))
 
 	x2 = Concat(x2seq, x2dnase)
 	x2 = Convolution(x2, 64, (3, 1))
