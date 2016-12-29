@@ -17,26 +17,6 @@ from joblib import Parallel, delayed
 random.seed(0)
 numpy.random.seed(0)
 
-cpdef numpy.ndarray translate( numpy.ndarray sequence, dict mapping ):
-	"""Translate the sequence from 
-	Translate the sequence. Since this involves a lot of lookups, it's faster
-	to do it in cython.
-	"""
-
-	cdef int i, idx
-	cdef int n = sequence.shape[0]
-
-	ohe_sequence = numpy.zeros( (n, 4), dtype=numpy.int32 )
-
-	for i in range(n):
-		if sequence[i] == 'N':
-			continue
-
-		idx = mapping[ sequence[i] ]
-		ohe_sequence[i, idx] = 1
-
-	return ohe_sequence
-
 cpdef insulation_score(numpy.ndarray y_pred, int size=100):
 	cdef int i, j, k, n = y_pred.shape[0]
 	cdef numpy.ndarray y = numpy.zeros(n)
@@ -128,61 +108,33 @@ cpdef numpy.ndarray downsample(numpy.ndarray x, numpy.ndarray regions,
 
 	return y
 
-def predict(name, iteration, celltype='GM12878', use_seq=True, 
-	use_dnase=True, use_dist=True, min_dist=50000, max_dist=1000000, 
-	batch_size=10240):
-
-	ctxs = [0, 1, 2, 3]
-
-	Parallel(n_jobs=4)( delayed(predict_task)(name, iteration, ctx, 4, celltype,
-		use_seq, use_dnase, use_dist, min_dist, max_dist, batch_size) for ctx in ctxs)
-
-	resolution = 1000
-	width = 500
-	n = numpy.load('chr21.pred.npy', mmap_mode='r').shape[0]
-	y = numpy.zeros((n, n))
-
-	for ctx in ctxs:
-		with open('{}-{}-{}-{}-predictions.txt'.format(name, iteration, celltype, ctx), 'r') as infile:
-			for line in infile:
-				mid1, mid2, p = line.split()
-				mid1 = (int(float(mid1)) - width) / resolution
-				mid2 = (int(float(mid2)) - width) / resolution
-				p = float(p)
-
-				y[mid1, mid2] = p
-
-	numpy.save("chr21.{}.y_pred.1000.npy".format(celltype), y)
-	os.system('rm {}-{}-{}-*-predictions.txt'.format(name, iteration, celltype))	
-
-def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=True, bint use_dnase=True, 
-	bint use_dist=True, int min_dist=50000, int max_dist=1000000, batch_size=10240):
-	cdef int window = 1000, width = 500
+def predict_task(name, iteration, ctx, n_jobs, numpy.ndarray sequence, 
+	numpy.ndarray dnase, numpy.ndarray regions, bint use_seq=True, 
+	bint use_dnase=True, bint use_dist=True, int min_dist=50000, 
+	int max_dist=1000000, batch_size=1024, bint verbose=False):
 	cdef int k = 0, tot = 0, i, j, l, mid1, mid2
-	cdef numpy.ndarray sequence = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.ohe.npy')
-	cdef numpy.ndarray dnase = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.{}.ohe_dnase.npy'.format(celltype))
-	cdef numpy.ndarray regions = numpy.load('/data/scratch/ssd/jmschr/contact/chr21.GM12878.regions.1000.npy').astype('int')
-	cdef numpy.ndarray predictions = numpy.zeros((batch_size, 3), dtype='float32')
+	cdef numpy.ndarray predictions = numpy.zeros((10240, 3), dtype='float32')
 	cdef int n = regions.shape[0]
 
-	print "GPU [{}] [{}] -- data loaded".format(celltype, ctx)
 	model = mx.model.FeedForward.load(name, iteration, ctx=mx.gpu(ctx))
-	print "GPU [{}] [{}] -- model loaded".format(celltype, ctx)
+	
+	if verbose:
+		print "GPU [{}] -- model loaded".format(ctx)
 
-	with open('{}-{}-{}-{}-predictions.txt'.format(name, iteration, celltype, ctx), 'w') as outfile:
+	with open('.rambutan.predictions.{}.txt'.format(ctx), 'w') as outfile:
 		for mid1 in regions:
 			for mid2 in regions[ctx::n_jobs]:
 				if not min_dist <= mid2 - mid1 <= max_dist:
 					continue
 
 				if k == 0:
-					data = { 'x1seq'    : numpy.zeros((batch_size, window, 4)),
-							 'x2seq'    : numpy.zeros((batch_size, window, 4)),
-							 'x1dnase'  : numpy.zeros((batch_size, window, 8)),
-							 'x2dnase'  : numpy.zeros((batch_size, window, 8)),
-							 'distance' : numpy.zeros((batch_size, 191)) }
+					data = { 'x1seq'    : numpy.zeros((10240, 1000, 4)),
+							 'x2seq'    : numpy.zeros((10240, 1000, 4)),
+							 'x1dnase'  : numpy.zeros((10240, 1000, 8)),
+							 'x2dnase'  : numpy.zeros((10240, 1000, 8)),
+							 'distance' : numpy.zeros((10240, 191)) }
 
-				if k != batch_size:
+				if k != 10240:
 					if use_seq:
 						data['x1seq'][k] = sequence[mid1-width:mid1+width]
 						data['x2seq'][k] = sequence[mid2-width:mid2+width]
@@ -205,20 +157,21 @@ def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=
 					tot += 1
 
 				else:
-					print "GPU [{}] [{}] -- {} samples loaded, predicting...".format(celltype, ctx, k),
-					data['x1seq'] = data['x1seq'].reshape((batch_size, 1, window, 4))
-					data['x2seq'] = data['x2seq'].reshape((batch_size, 1, window, 4))
-					data['x1dnase'] = data['x1dnase'].reshape((batch_size, 1, window, 8))
-					data['x2dnase'] = data['x2dnase'].reshape((batch_size, 1, window, 8))
+					if verbose:
+						print "GPU [{}] -- {} samples loaded, predicting...".format(ctx, k),
+					data['x1seq'] = data['x1seq'].reshape((10240, 1, 1000, 4))
+					data['x2seq'] = data['x2seq'].reshape((10240, 1, 1000, 4))
+					data['x1dnase'] = data['x1dnase'].reshape((10240, 1, 1000, 8))
+					data['x2dnase'] = data['x2dnase'].reshape((10240, 1, 1000, 8))
 
-					X = mx.io.NDArrayIter(data, batch_size=1024)
+					X = mx.io.NDArrayIter(data, batch_size=batch_size)
 					y = model.predict(X)
 					k = 0
 
-					data['x1seq'] = data['x1seq'].reshape((batch_size, window, 4))
-					data['x2seq'] = data['x2seq'].reshape((batch_size, window, 4))
-					data['x1dnase'] = data['x1dnase'].reshape((batch_size, window, 8))
-					data['x2dnase'] = data['x2dnase'].reshape((batch_size, window, 8))
+					data['x1seq'] = data['x1seq'].reshape((10240, 1000, 4))
+					data['x2seq'] = data['x2seq'].reshape((10240, 1000, 4))
+					data['x1dnase'] = data['x1dnase'].reshape((10240, 1000, 8))
+					data['x2dnase'] = data['x2dnase'].reshape((10240, 1000, 8))
 
 					predictions[:,2] = y[:,1]
 					for mid1, mid2, y in predictions:
@@ -226,5 +179,6 @@ def predict_task(name, iteration, ctx, n_jobs, celltype='GM12878', bint use_seq=
 
 					predictions *= 0
 
-					print
-					print "GPU [{}] [{}] -- {} samples predicted and output".format(celltype, ctx, tot)
+					if verbose:
+						print
+						print "GPU [{}] -- {} samples predicted and output".format(ctx, tot)
