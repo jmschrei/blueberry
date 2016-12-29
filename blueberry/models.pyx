@@ -99,7 +99,7 @@ class TrainingGenerator(DataIter):
 		cdef numpy.ndarray contacts = self.contacts
 		cdef numpy.ndarray regions = self.regions
 		cdef numpy.ndarray x1dnase, x2dnase
-		cdef int window = self.window, batch_size = self.batch_size
+		cdef int batch_size = self.batch_size
 		cdef int i, c, k, mid1, mid2, distance
 		cdef dict data, labels, contact_dict = self.contact_dict
 		cdef list data_list, label_list
