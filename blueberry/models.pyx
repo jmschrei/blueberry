@@ -10,6 +10,8 @@ using a MxNet model.
 import logging, time
 import numpy, os, pyximport
 
+cimport numpy
+
 from .blueberry import *
 from joblib import Parallel, delayed
 from sklearn.metrics import roc_auc_score, average_precision_score
