@@ -20,13 +20,10 @@ except:
 from .blueberry import *
 from .datatypes import *
 
-Q_LOWER_BOUND = 0.01
-Q_UPPER_BOUND = 0.50
 HIGH_FITHIC_CUTOFF = 1000000
 LOW_FITHIC_CUTOFF = 50000
 DATA_DIR = "/net/noble/vol1/home/jmschr/proj/contact/data"
 DATA = lambda name: DATA_DIR + "/{}".format(name)
-
 
 def extract_contacts(celltype, chromosome, resolution, alpha=None, n_regions=None):
 	"""Extract contacts from a given chromosome, and number of regions in the band.
@@ -88,35 +85,6 @@ def extract_contacts(celltype, chromosome, resolution, alpha=None, n_regions=Non
 		return contact, count_band_regions(contactMap.regions)
 	else:
 		return contact
-
-def negative_coordinate_pair(regions, contacts, min_dist=25000, max_dist=10000000):
-	"""Returns a valid coordinate.
-	Parameters
-	----------
-	regions : numpy.ndarray
-		Valid mappable regions in the chromosome.
-	contacts : dict
-		Pairs of contacts
-	Returns
-	-------
-	coordinates : tuple
-		Region pair tuple
-	"""
-
-	while True:
-		mid1, mid2 = numpy.random.choice(regions, 2)
-		mid1, mid2 = min(mid1, mid2), max(mid1, mid2)
-
-		if not (min_dist <= mid2 - mid1 <= max_dist):
-			continue
-
-		if contacts.has_key( (mid1, mid2) ):
-			continue
-
-		break
-
-	return mid1, mid2
-
 
 def plot_roc_pr(y_true, y_pred, labels, styles=None):
 	"""Plot a ROC and PR curve on the same plot.

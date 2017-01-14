@@ -1,11 +1,6 @@
 # blueberry.pyx
 # Contact: Jacob Schreiber (jmschreiber91@gmail.com)
 
-"""
-Cython-optimized functions for converting data into a LMDB database
-in a flexible manner.
-"""
-
 from libc.math cimport exp
 cimport numpy
 import numpy
@@ -107,78 +102,3 @@ cpdef numpy.ndarray downsample(numpy.ndarray x, numpy.ndarray regions,
 						y[l1, l2] = max(y[l1, l2], x[k1 + i, k2 + j])
 
 	return y
-
-def predict_task(name, iteration, ctx, n_jobs, numpy.ndarray sequence, 
-	numpy.ndarray dnase, numpy.ndarray regions, bint use_seq=True, 
-	bint use_dnase=True, bint use_dist=True, int min_dist=50000, 
-	int max_dist=1000000, batch_size=1024, bint verbose=False):
-	cdef int k = 0, tot = 0, i, j, l, mid1, mid2
-	cdef numpy.ndarray predictions = numpy.zeros((10240, 3), dtype='float32')
-	cdef int n = regions.shape[0]
-
-	model = mx.model.FeedForward.load(name, iteration, ctx=mx.gpu(ctx))
-	
-	if verbose:
-		print "GPU [{}] -- model loaded".format(ctx)
-
-	with open('.rambutan.predictions.{}.txt'.format(ctx), 'w') as outfile:
-		for mid1 in regions:
-			for mid2 in regions[ctx::n_jobs]:
-				if not min_dist <= mid2 - mid1 <= max_dist:
-					continue
-
-				if k == 0:
-					data = { 'x1seq'    : numpy.zeros((10240, 1000, 4)),
-							 'x2seq'    : numpy.zeros((10240, 1000, 4)),
-							 'x1dnase'  : numpy.zeros((10240, 1000, 8)),
-							 'x2dnase'  : numpy.zeros((10240, 1000, 8)),
-							 'distance' : numpy.zeros((10240, 191)) }
-
-				if k != 10240:
-					if use_seq:
-						data['x1seq'][k] = sequence[mid1-width:mid1+width]
-						data['x2seq'][k] = sequence[mid2-width:mid2+width]
-
-					if use_dnase:
-						data['x1dnase'][k] = dnase[mid1-width:mid1+width]
-						data['x2dnase'][k] = dnase[mid2-width:mid2+width]
-
-					if use_dist:
-						distance = mid2 - mid1 - min_dist
-						for l in range(100):
-							data['distance'][k][l] = 1 if distance >= l*1000 else 0
-						for l in range(91):
-							data['distance'][k][l+100] = 1 if distance >= 100000 + l*10000 else 0
-
-					predictions[k, 0] = mid1
-					predictions[k, 1] = mid2
-
-					k += 1
-					tot += 1
-
-				else:
-					if verbose:
-						print "GPU [{}] -- {} samples loaded, predicting...".format(ctx, k),
-					data['x1seq'] = data['x1seq'].reshape((10240, 1, 1000, 4))
-					data['x2seq'] = data['x2seq'].reshape((10240, 1, 1000, 4))
-					data['x1dnase'] = data['x1dnase'].reshape((10240, 1, 1000, 8))
-					data['x2dnase'] = data['x2dnase'].reshape((10240, 1, 1000, 8))
-
-					X = mx.io.NDArrayIter(data, batch_size=batch_size)
-					y = model.predict(X)
-					k = 0
-
-					data['x1seq'] = data['x1seq'].reshape((10240, 1000, 4))
-					data['x2seq'] = data['x2seq'].reshape((10240, 1000, 4))
-					data['x1dnase'] = data['x1dnase'].reshape((10240, 1000, 8))
-					data['x2dnase'] = data['x2dnase'].reshape((10240, 1000, 8))
-
-					predictions[:,2] = y[:,1]
-					for mid1, mid2, y in predictions:
-						outfile.write( "{} {} {}\n".format(mid1, mid2, y) )
-
-					predictions *= 0
-
-					if verbose:
-						print
-						print "GPU [{}] -- {} samples predicted and output".format(ctx, tot)
