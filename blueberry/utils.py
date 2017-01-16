@@ -25,7 +25,7 @@ LOW_FITHIC_CUTOFF = 50000
 DATA_DIR = "/net/noble/vol1/home/jmschr/proj/contact/data"
 DATA = lambda name: DATA_DIR + "/{}".format(name)
 
-def extract_contacts(celltype, chromosome, resolution, alpha=None, n_regions=None):
+def extract_contacts(celltype, chromosome, resolution, alpha=None, n_regions=None, filename=None):
 	"""Extract contacts from a given chromosome, and number of regions in the band.
 
 	Extract all regions which have a p-value <= alpha. This is useful for the
@@ -58,7 +58,7 @@ def extract_contacts(celltype, chromosome, resolution, alpha=None, n_regions=Non
 	print "CPU [{}]: Extracting {} chr{}".format(chromosome, celltype, chromosome)
 
 	try:
-		contactMap = FithicContactMap(celltype, chromosome, resolution)
+		contactMap = FithicContactMap(celltype, chromosome, resolution, filename)
 		contact = contactMap.map
 	except Exception as e:
 		print "CPU [{}]: {}".format(chromosome, e.message)
