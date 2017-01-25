@@ -154,14 +154,15 @@ cdef class ContactMap(object):
 		"""
 
 		cdef int i, j, d = self.n_bins+1
-		cdef double* matrix = <double*> self.matrix.data
-		cdef double* KRnorm = <double*> self.KRnorm.data
-		cdef double* KRexpected = <double*> self.KRexpected.data
+
+		for i in range(self.n_bins):
+			for j in range(i, self.n_bins):
+				self.matrix[i, j] /= KRnorm[]
 
 		for i in range(self.n_bins):
 			for j in range(self.n_bins-i):
-				matrix[j*d+j+i] /= KRnorm[j] * KRnorm[j+i] * KRexpected[i]
-				matrix[(j+i)*d+j] = matrix[j*d+j+i]
+				matrix[i, j] /= KRnorm[j] * KRnorm[i] * KRexpected[j-i]
+				matrix[j, i] = matrix[i, j]
 
 		self.matrix = numpy.nan_to_num(self.matrix)
 
