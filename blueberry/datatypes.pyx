@@ -157,8 +157,8 @@ cdef class ContactMap(object):
 
 		for i in range(self.n_bins):
 			for j in range(self.n_bins-i):
-				matrix[i, j] /= self.KRnorm[j] * self.KRnorm[i] * self.KRexpected[j-i]
-				matrix[j, i] = matrix[i, j]
+				self.matrix[i, j] /= self.KRnorm[j] * self.KRnorm[i] * self.KRexpected[j-i]
+				self.matrix[j, i] = matrix[i, j]
 
 		self.matrix = numpy.nan_to_num(self.matrix)
 
