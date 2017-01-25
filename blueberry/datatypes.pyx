@@ -156,7 +156,7 @@ cdef class ContactMap(object):
 		cdef int i, j
 
 		for i in range(self.n_bins):
-			for j in range(self.n_bins-i):
+			for j in range(i, self.n_bins):
 				self.matrix[i, j] /= self.KRnorm[j] * self.KRnorm[i] * self.KRexpected[j-i]
 				self.matrix[j, i] = self.matrix[i, j]
 
