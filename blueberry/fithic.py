@@ -332,6 +332,9 @@ def generate_FragPairs(infilename, resolution, min_dist, max_dist):
 	for i in range(0, maxPossibleGenomicDist+1, resolution):
 		mainDic[i] = [0,0]
 
+	print "keys: ", allFragsDic.keys()
+	print n_frags, maxPossibleGenomicDist
+
 	for ch in allFragsDic:
 		maxFrag = maxFrags[ch]
 		n = len(allFragsDic[ch])
