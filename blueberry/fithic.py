@@ -445,7 +445,7 @@ def fit_spline(mainDic, x, y, yerr, infilename, outfilename, biasDic, resolution
 			chr1, mid1, chr2, mid2, contactCount = line.rstrip().split()
 			mid1 = int(mid1)
 			mid2 = int(mid2)
-			contactCount = int(contactCount)
+			contactCount = float(contactCount)
 			distance = mid2 - mid1
 
 			
