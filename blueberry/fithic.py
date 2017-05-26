@@ -349,7 +349,7 @@ def generate_FragPairs(infilename, resolution, min_dist, max_dist):
 		possibleIntraAllCount += (n*(n+1))/2 # n(n-1) if excluding self
 	
 	possibleInterAllCount /= 2
-	interChrProb = 1.0 / possibleInterAllCount
+	interChrProb = 1.0 / possibleInterAllCount if possibleInterAllCount != 0 else 0
 	baselineIntraChrProb = 1.0 / possibleIntraAllCount
 	
 	for i in range(0, maxPossibleGenomicDist+1, resolution):
