@@ -343,6 +343,8 @@ def generate_FragPairs(infilename, resolution, min_dist, max_dist):
 			mainDic[i][0] += n-d
 			d += 1
 		
+		print n, d, n_frags
+
 		possibleInterAllCount += n * (n_frags-n)
 		possibleIntraAllCount += (n*(n+1))/2 # n(n-1) if excluding self
 	
