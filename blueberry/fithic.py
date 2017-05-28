@@ -105,74 +105,35 @@ class FitHiC(object):
 		"""
 
 		fithic(self.libname, self.resolution, self.n_bins, self.min_dist, 
-			self.max_dist, self.n_passes, interactions, fragments, biases)
+			self.max_dist, self.n_passes, interactions, fragments, biases, verbose)
 
-def main():
-	### parse the command line arguments
-	usage = "usage: %prog [options]"
-	parser = OptionParser(usage=usage)
-	parser.add_option("-f", "--fragments", dest="fragsfile",
-			help="File containing the list of midpoints (or start indices) of the fragments/windows/meta-fragments for the reference genome." )
-	parser.add_option("-i", "--interactions", dest="intersfile",
-			help="File containing the list of contact counts between fragment/window/meta-fragment pairs.")
-	parser.add_option("-t", "--biases", dest="biasfile",
-					  help="OPTIONAL: biases calculated by ICE for each locus are read from BIASFILE")
-	parser.add_option("-r", "--resolution", dest="resolution",type="int",
-					  help="Length of fixed-size genomic windows used to process the data. E.x. 10000")
-	parser.add_option("-l", "--lib", dest="libname",
-					  help="OPTIONAL: A prefix (generally the name of the library) that is going to be used for output file names.")
-	parser.add_option("-b", "--n_bins", dest="n_bins", type="int",
-					  help="OPTIONAL: Number of equal-occupancy bins to process the data. Default is 100")
-	parser.add_option("-p", "--passes", dest="n_passes",type="int",
-					  help="OPTIONAL: Number of passes after the initial spline fit. DEFAULT is 2 (spline-1 and spline-2).")
-	parser.add_option("-U", "--upperbound", dest="max_dist", type="int",
-					  help="OPTIONAL: Upper bound on the mid-range distances. DEFAULT no limit.")
-	parser.add_option("-L", "--lowerbound", dest="min_dist", type="int",
-					  help="OPTIONAL: Lower bound on the mid-range distances. DEFAULT no limit.")
-	parser.set_defaults(verbose=True, n_bins=100, min_dist=-1, max_dist=-1, n_passes=2, libname="", biasfile='none')
-	(options, args) = parser.parse_args()
-	if len(args) != 0:
-		parser.error("incorrect number of arguments")
-
-	n_bins = options.n_bins # 100 by default
-	max_dist = options.max_dist # -1 by default, means no upper bound
-	min_dist = options.min_dist # -1 by default, means no lower bound
-	libname = options.libname
-	n_passes = options.n_passes
-	resolution = options.resolution
-
-	interactions = options.intersfile
-	frags = options.fragsfile
-	bias = options.biasfile
-
-	fithic(libname, resolution, n_bins, min_dist, max_dist, n_passes, interactions, frags, bias)
-
-def fithic(libname, resolution, n_bins, min_dist, max_dist, n_passes, interactions, frags, biases):
+def fithic(libname, resolution, n_bins, min_dist, max_dist, n_passes, interactions, frags, biases, verbose):
 	# read the mandatory inumpyut files -f and -i
-	mainDic = generate_FragPairs(frags, resolution, min_dist, max_dist)
+	mainDic = generate_FragPairs(frags, resolution, min_dist, max_dist, verbose)
 
 	biasDic = {}
 	if biases != 'none':
-		biasDic = read_bias_file(biases)
+		biasDic = read_bias_file(biases, verbose)
 
 	# read contacts in sparse form
-	mainDic = read_interactions(mainDic, interactions, min_dist, max_dist)
+	mainDic = read_interactions(mainDic, interactions, min_dist, max_dist, verbose)
 
 	### DO THE FIRST PASS ###
 	# calculate priors using original fit-hic and plot with standard errors
-	print("\n\t\tSPLINE FIT PASS 1 (spline-1) \n"),
-	x, y, yerr = calculate_probabilities(mainDic, n_bins, resolution, min_dist, max_dist, libname+".fithic_pass1")
+	if verobse:
+		print("\n\t\tSPLINE FIT PASS 1 (spline-1) \n"),
+	x, y, yerr = calculate_probabilities(mainDic, n_bins, resolution, min_dist, max_dist, libname+".fithic_pass1", verbose)
 
 	# now fit spline to the data using power-law residual by improving it  <residualFactor> times
 	splineXinit, splineYinit, splineResidual = fit_spline(mainDic, x, y, yerr, 
-		interactions, libname+".spline_pass1", biasDic, resolution, min_dist, max_dist) 
+		interactions, libname+".spline_pass1", biasDic, resolution, min_dist, max_dist, verbose) 
 
-
-	print("\nExecution of fit-hic completed successfully. \n\n"),
+	if verbose:
+		print("\nExecution of fit-hic completed successfully. \n\n"),
 	return # from main
 
 
-def read_bias_file(infilename):
+def read_bias_file(infilename, verbose):
 	sys.stderr.write("\n\nReading ICE biases. \n")
 	biases, discarded = {}, 0
 
@@ -191,17 +152,20 @@ def read_bias_file(infilename):
 			if mid not in biases[chr]:
 				biases[chr][mid] = bias
 
-	sys.stderr.write("Out of " + str(i+1) + " loci " +str(discarded) +" were discarded with biases not in range [0.5 2]\n\n" )
+	if verbose:
+		print "Out of " + str(i+1) + " loci " +str(discarded) +" were discarded with biases not in range [0.5 2]\n\n"
 	return biases
 
-def calculate_probabilities(mainDic, n_bins, resolution, min_dist, max_dist, filename):
-	print("\nCalculating probability means and standard deviations by equal-occupancy binning of contact counts\n"),
-	print("------------------------------------------------------------------------------------\n"),
+def calculate_probabilities(mainDic, n_bins, resolution, min_dist, max_dist, filename, verbose):
+	if verbose:
+		print("\nCalculating probability means and standard deviations by equal-occupancy binning of contact counts\n"),
+		print("------------------------------------------------------------------------------------\n"),
 	outfile = open(filename+'.res'+str(resolution)+'.txt', 'w')
 
 
 	desiredPerBin = (observedIntraInRangeSum)/n_bins
-	print("observed intra-chr read counts in range\t"+repr(observedIntraInRangeSum)+ ",\tdesired number of contacts per bin\t" +repr(desiredPerBin)+",\tnumber of bins\t"+repr(n_bins)+"\n"),
+	if verbose:
+		print("observed intra-chr read counts in range\t"+repr(observedIntraInRangeSum)+ ",\tdesired number of contacts per bin\t" +repr(desiredPerBin)+",\tnumber of bins\t"+repr(n_bins)+"\n"),
 
 	# the following five lists will be the print outputs
 	x = [] # avg genomic distances of bins
@@ -261,9 +225,10 @@ def calculate_probabilities(mainDic, n_bins, resolution, min_dist, max_dist, fil
 
 	return x, y, yerr
 
-def	read_interactions(mainDic, infile, min_dist, max_dist):
-	print("\nReading all the contact counts\n"),
-	print("------------------------------------------------------------------------------------\n"),
+def	read_interactions(mainDic, infile, min_dist, max_dist, verbose):
+	if verbose:
+		print("\nReading all the contact counts\n"),
+		print("------------------------------------------------------------------------------------\n"),
 
 	global observedInterAllSum 
 	global observedInterAllCount
@@ -295,15 +260,18 @@ def	read_interactions(mainDic, infile, min_dist, max_dist):
 			observedIntraInRangeSum += contactCount
 			observedIntraInRangeCount +=1	
 
-	print("Observed, Intra-chr in range: pairs= "+str(observedIntraInRangeCount) +"\t totalCount= "+str(observedIntraInRangeSum))
-	print("Observed, Intra-chr all: pairs= "+str(observedIntraAllCount) +"\t totalCount= "+str(observedIntraAllSum))
-	print("Observed, Inter-chr all: pairs= "+str(observedInterAllCount) +"\t totalCount= "+str(observedInterAllSum))
-	print("Range of observed genomic distances [%d %d]" % (minObservedGenomicDist,maxObservedGenomicDist) + "\n"),
+	if verbose:
+		print("Observed, Intra-chr in range: pairs= "+str(observedIntraInRangeCount) +"\t totalCount= "+str(observedIntraInRangeSum))
+		print("Observed, Intra-chr all: pairs= "+str(observedIntraAllCount) +"\t totalCount= "+str(observedIntraAllSum))
+		print("Observed, Inter-chr all: pairs= "+str(observedInterAllCount) +"\t totalCount= "+str(observedInterAllSum))
+		print("Range of observed genomic distances [%d %d]" % (minObservedGenomicDist,maxObservedGenomicDist) + "\n"),
 	return mainDic
 
-def generate_FragPairs(infilename, resolution, min_dist, max_dist):
-	print("\nEnumerating all possible intra-chromosomal fragment pairs in-range\n"),
-	print("------------------------------------------------------------------------------------\n"),
+def generate_FragPairs(infilename, resolution, min_dist, max_dist, verbose):
+	if verbose:
+		print("\nEnumerating all possible intra-chromosomal fragment pairs in-range\n"),
+		print("------------------------------------------------------------------------------------\n"),
+	
 	global maxPossibleGenomicDist
 	global possibleIntraAllCount
 	global possibleInterAllCount
@@ -351,18 +319,20 @@ def generate_FragPairs(infilename, resolution, min_dist, max_dist):
 		if in_range_check(i, min_dist, max_dist):
 			possibleIntraInRangeCount += mainDic[i][0]
 
-	print("Number of all fragments= "+str(n_frags)+"\t resolution= "+ str(resolution))
-	print("Possible, Intra-chr in range: pairs= "+str(possibleIntraInRangeCount))
-	print("Possible, Intra-chr all: pairs= "+str(possibleIntraAllCount)) 
-	print("Possible, Inter-chr all: pairs= "+str(possibleInterAllCount))
-	print("Desired genomic distance range	[%d %d]" % (min_dist,max_dist) + "\n"),
-	print("Range of possible genomic distances	[0	%d]" % (maxPossibleGenomicDist) + "\n"),
+	if verbose:
+		print("Number of all fragments= "+str(n_frags)+"\t resolution= "+ str(resolution))
+		print("Possible, Intra-chr in range: pairs= "+str(possibleIntraInRangeCount))
+		print("Possible, Intra-chr all: pairs= "+str(possibleIntraAllCount)) 
+		print("Possible, Inter-chr all: pairs= "+str(possibleInterAllCount))
+		print("Desired genomic distance range	[%d %d]" % (min_dist,max_dist) + "\n"),
+		print("Range of possible genomic distances	[0	%d]" % (maxPossibleGenomicDist) + "\n"),
 
 	return mainDic
 
-def fit_spline(mainDic, x, y, yerr, infilename, outfilename, biasDic, resolution, min_dist, max_dist):
-	print("\nFit a univariate spline to the probability means\n"),
-	print("------------------------------------------------------------------------------------\n"),
+def fit_spline(mainDic, x, y, yerr, infilename, outfilename, biasDic, resolution, min_dist, max_dist, verbose):
+	if verbose:
+		print("\nFit a univariate spline to the probability means\n"),
+		print("------------------------------------------------------------------------------------\n"),
 
 	# maximum residual allowed for spline is set to min(y)^2
 	splineError = min(y)**2
@@ -431,7 +401,8 @@ def fit_spline(mainDic, x, y, yerr, infilename, outfilename, biasDic, resolution
 	interCount = 0
 	discardCount = 0
 
-	print("lower bound on mid-range distances  "+ repr(min_dist) + ", upper bound on mid-range distances  " + repr(max_dist) +"\n"),
+	if verbose:
+		print("lower bound on mid-range distances  "+ repr(min_dist) + ", upper bound on mid-range distances  " + repr(max_dist) +"\n"),
 	p_vals=[]
 	q_vals=[]
 
@@ -486,8 +457,9 @@ def fit_spline(mainDic, x, y, yerr, infilename, outfilename, biasDic, resolution
 	# Do the BH FDR correction
 	q_vals = benjamini_hochberg_correction(p_vals, possibleInterAllCount+possibleIntraAllCount)
 
-	print("Writing p-values and q-values to file %s" % outfilename + ".significances.txt\n"),
-	print("Number of pairs discarded due to bias not in range [0.5 2]\n"),
+	if verbose:
+		print("Writing p-values and q-values to file %s" % outfilename + ".significances.txt\n"),
+		print("Number of pairs discarded due to bias not in range [0.5 2]\n"),
 
 	with gzip.open(infilename, 'r') as infile:
 		with gzip.open(outfilename+'.res'+str(resolution)+'.significances.txt.gz', 'w') as outfile:
