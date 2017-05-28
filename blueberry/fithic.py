@@ -120,7 +120,7 @@ def fithic(libname, resolution, n_bins, min_dist, max_dist, n_passes, interactio
 
 	### DO THE FIRST PASS ###
 	# calculate priors using original fit-hic and plot with standard errors
-	if verobse:
+	if verbose:
 		print("\n\t\tSPLINE FIT PASS 1 (spline-1) \n"),
 	x, y, yerr = calculate_probabilities(mainDic, n_bins, resolution, min_dist, max_dist, libname+".fithic_pass1", verbose)
 
@@ -134,7 +134,8 @@ def fithic(libname, resolution, n_bins, min_dist, max_dist, n_passes, interactio
 
 
 def read_bias_file(infilename, verbose):
-	sys.stderr.write("\n\nReading ICE biases. \n")
+	if verbose:
+		sys.stderr.write("\n\nReading ICE biases. \n")
 	biases, discarded = {}, 0
 
 	with gzip.open(infilename, 'r') as infile:
