@@ -13,7 +13,7 @@ import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import sys, gzip, bisect, itertools
-import numpy, pandas, scipy.special as scsp
+import numpy, scipy.special as scsp
 
 from optparse import OptionParser
 from scipy.stats.mstats import mquantiles
@@ -240,26 +240,26 @@ def	read_interactions(mainDic, infile, min_dist, max_dist, verbose):
 	global minObservedGenomicDist
 	global maxObservedGenomicDist
 
-	data = pandas.read_csv(infile, header=None, names=['chr1', 'mid1', 'chr2', 'mid2', 'contactCount'], sep='\t')
+	with gzip.open(infile, 'r') as interactions:
+		for line in interactions:
+			chr1, mid1, chr2, mid2, contactCount = line.rstrip().split()
+			mid1, mid2, contactCount = int(mid1), int(mid2), float(contactCount)
 
-	for i, chr1, mid1, chr2, mid2, contactCount in data.itertuples():
-		distance = mid2 - mid1
+			if chr1 != chr2:
+				observedInterAllSum += contactCount
+				observedInterAllCount += 1
+			else:
+				observedIntraAllSum += contactCount
+				observedIntraAllCount += 1
 
-		if chr1 != chr2:
-			observedInterAllSum += contactCount
-			observedInterAllCount += 1
-		else:
-			observedIntraAllSum += contactCount
-			observedIntraAllCount += 1
-
-		if (min_dist == -1 or (min_dist > -1 and distance > min_dist)) and\
-			(max_dist == -1 or (max_dist > -1 and distance <= max_dist)):
-			minObservedGenomicDist = min(minObservedGenomicDist, distance)
-			maxObservedGenomicDist = max(maxObservedGenomicDist, distance)
-			if distance in mainDic:
-				mainDic[distance][1] += contactCount
-			observedIntraInRangeSum += contactCount
-			observedIntraInRangeCount +=1	
+			if (min_dist == -1 or (min_dist > -1 and distance > min_dist)) and\
+				(max_dist == -1 or (max_dist > -1 and distance <= max_dist)):
+				minObservedGenomicDist = min(minObservedGenomicDist, distance)
+				maxObservedGenomicDist = max(maxObservedGenomicDist, distance)
+				if distance in mainDic:
+					mainDic[distance][1] += contactCount
+				observedIntraInRangeSum += contactCount
+				observedIntraInRangeCount +=1	
 
 	if verbose:
 		print("Observed, Intra-chr in range: pairs= "+str(observedIntraInRangeCount) +"\t totalCount= "+str(observedIntraInRangeSum))
@@ -410,9 +410,7 @@ def fit_spline(mainDic, x, y, yerr, infilename, outfilename, biasDic, resolution
 	with gzip.open(infilename, 'r') as infile:
 		for line in infile:
 			chr1, mid1, chr2, mid2, contactCount = line.rstrip().split()
-			mid1 = int(mid1)
-			mid2 = int(mid2)
-			contactCount = int(contactCount)
+			mid1, mid2, contactCount = int(mid1), int(mid2), float(contactCount)
 			distance = mid2 - mid1
 
 			
