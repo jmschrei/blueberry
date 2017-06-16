@@ -405,69 +405,54 @@ def fit_spline(mainDic, x, y, yerr, infilename, outfilename, biasDic, resolution
 
 	if verbose:
 		print("lower bound on mid-range distances  "+ repr(min_dist) + ", upper bound on mid-range distances  " + repr(max_dist) +"\n"),
-	p_vals=[]
-	q_vals=[]
-
-	with gzip.open(infilename, 'r') as infile:
-		for line in infile:
-			chr1, mid1, chr2, mid2, contactCount = line.rstrip().split()
-			mid1, mid2, contactCount = int(mid1), int(mid2), float(contactCount)
-			distance = mid2 - mid1
-
-			
-			bias1 = 1.0; 
-			bias2 = 1.0;  # assumes there is no bias to begin with
-			# if the biasDic is not null sets the real bias values
-			if len(biasDic)>0:
-				if chr1 in biasDic and mid1 in biasDic[chr1]:
-					bias1=biasDic[chr1][mid1]
-				if chr2 in biasDic and mid2 in biasDic[chr2]:
-					bias2=biasDic[chr2][mid2]
-		
-			if bias1 == -1 or bias2 == -1:
-				p_val = 1.0
-				discardCount += 1
-			elif chr1 == chr2:
-				if (min_dist==-1 or (min_dist>-1 and distance >min_dist)) and\
-				   (max_dist==-1 or (max_dist>-1 and distance <= max_dist)):
-					# make sure the interaction distance is covered by the probability bins
-					distToLookUp = min(max(distance, min_x), max_x)
-					i = min(bisect.bisect_left(splineX, distToLookUp),len(splineX)-1)
-					prior_p = newSplineY[i] * (bias1 * bias2) # biases added in the picture
-					p_val = scsp.bdtrc(contactCount-1, observedIntraInRangeSum, prior_p)
-					intraInRangeCount +=1
-				elif (min_dist > -1 and distance <= min_dist):
-					prior_p = 1.0
-					p_val = 1.0
-					intraVeryProximalCount += 1
-				elif (max_dist>-1 and distance > max_dist):
-					## out of range distance
-					## use the prior of the baseline intra-chr interaction probability
-					prior_p = baselineIntraChrProb * (bias1 * bias2)  # biases added in the picture
-					p_val = scsp.bdtrc(contactCount-1, observedIntraAllSum, prior_p)
-					intraOutOfRangeCount += 1
-			else: 
-				prior_p = interChrProb*(bias1*bias2) # biases added in the picture
-				############# THIS HAS TO BE interactionCount-1 ##################
-				p_val = scsp.bdtrc(contactCount-1, observedInterAllSum, prior_p)
-				interCount += 1
-			
-			p_vals.append(p_val)
-
-	# Do the BH FDR correction
-	q_vals = benjamini_hochberg_correction(p_vals, possibleInterAllCount+possibleIntraAllCount)
-
-	if verbose:
-		print("Writing p-values and q-values to file %s" % outfilename + ".significances.txt\n"),
-		print("Number of pairs discarded due to bias not in range [0.5 2]\n"),
 
 	with gzip.open(infilename, 'r') as infile:
 		with gzip.open(outfilename+'.res'+str(resolution)+'.significances.txt.gz', 'w') as outfile:
 			outfile.write("chr1\tfragmentMid1\tchr2\tfragmentMid2\tcontactCount\tp-value\tq-value\n")
-			for i, line in enumerate(infile):
-				p_val, q_val = p_vals[i], q_vals[i]
+
+			for line in infile:
 				chr1, mid1, chr2, mid2, contactCount = line.rstrip().split()
-				outfile.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(chr1, mid1, chr2, mid2, contactCount, p_val, q_val))
+				mid1, mid2, contactCount = int(mid1), int(mid2), float(contactCount)
+				distance = mid2 - mid1
+				
+				bias1 = 1.0; 
+				bias2 = 1.0;  # assumes there is no bias to begin with
+				# if the biasDic is not null sets the real bias values
+				if len(biasDic)>0:
+					if chr1 in biasDic and mid1 in biasDic[chr1]:
+						bias1=biasDic[chr1][mid1]
+					if chr2 in biasDic and mid2 in biasDic[chr2]:
+						bias2=biasDic[chr2][mid2]
+			
+				if bias1 == -1 or bias2 == -1:
+					p_val = 1.0
+					discardCount += 1
+				elif chr1 == chr2:
+					if (min_dist==-1 or (min_dist>-1 and distance >min_dist)) and\
+					   (max_dist==-1 or (max_dist>-1 and distance <= max_dist)):
+						# make sure the interaction distance is covered by the probability bins
+						distToLookUp = min(max(distance, min_x), max_x)
+						i = min(bisect.bisect_left(splineX, distToLookUp),len(splineX)-1)
+						prior_p = newSplineY[i] * (bias1 * bias2) # biases added in the picture
+						p_val = scsp.bdtrc(contactCount-1, observedIntraInRangeSum, prior_p)
+						intraInRangeCount +=1
+					elif (min_dist > -1 and distance <= min_dist):
+						prior_p = 1.0
+						p_val = 1.0
+						intraVeryProximalCount += 1
+					elif (max_dist>-1 and distance > max_dist):
+						## out of range distance
+						## use the prior of the baseline intra-chr interaction probability
+						prior_p = baselineIntraChrProb * (bias1 * bias2)  # biases added in the picture
+						p_val = scsp.bdtrc(contactCount-1, observedIntraAllSum, prior_p)
+						intraOutOfRangeCount += 1
+				else: 
+					prior_p = interChrProb*(bias1*bias2) # biases added in the picture
+					############# THIS HAS TO BE interactionCount-1 ##################
+					p_val = scsp.bdtrc(contactCount-1, observedInterAllSum, prior_p)
+					interCount += 1
+
+				outfile.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(chr1, mid1, chr2, mid2, contactCount, p_val, -1))
 
 	return splineX, newSplineY, residual
 
