@@ -243,7 +243,7 @@ def	read_interactions(mainDic, infile, min_dist, max_dist, verbose):
 	with gzip.open(infile, 'r') as interactions:
 		for line in interactions:
 			chr1, mid1, chr2, mid2, contactCount = line.rstrip().split()
-			mid1, mid2, contactCount = int(mid1), int(mid2), float(contactCount)
+			mid1, mid2, contactCount = int(mid1), int(mid2), int(contactCount)
 			distance = mid2 - mid1
 
 			if chr1 != chr2:
@@ -412,7 +412,7 @@ def fit_spline(mainDic, x, y, yerr, infilename, outfilename, biasDic, resolution
 
 			for line in infile:
 				chr1, mid1, chr2, mid2, contactCount = line.rstrip().split()
-				mid1, mid2, contactCount = int(mid1), int(mid2), float(contactCount)
+				mid1, mid2, contactCount = int(mid1), int(mid2), int(contactCount)
 				distance = mid2 - mid1
 				
 				bias1 = 1.0;
