@@ -431,7 +431,7 @@ def fit_spline(mainDic, x, y, yerr, infilename, outfilename, biasDic, resolution
 					prior_p = newSplineY[i] * (bias1 * bias2) # biases added in the picture
 					p_val = scsp.bdtrc(contactCount-1, observedIntraInRangeSum, prior_p)
 					
-					if p_val <= 0.01:
+					if p_val <= 1:
 						outfile.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(chr1, mid1, chr2, mid2, contactCount, p_val, -1))
 
 	return splineX, newSplineY, residual
